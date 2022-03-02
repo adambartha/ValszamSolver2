@@ -20,8 +20,8 @@ class SetSolver
         {
             throw InvalidValueException("valószínűségi mérték nem lehet negatív vagy 1-nél nagyobb")
         }
-        val conditionIndex = key.indexOf("|")
-        if(conditionIndex >= 0 && conditionIndex != key.lastIndexOf("|"))
+        val conditionIndex = key.indexOf('|')
+        if(conditionIndex >= 0 && conditionIndex != key.lastIndexOf('|'))
         {
             throw InvalidParameterException(key)
         }
@@ -310,8 +310,6 @@ class SetSolver
         }
         return false
     }
-
-
     @Throws(VSException::class)
     fun solve(input: String): Double
     {
@@ -349,7 +347,7 @@ class SetSolver
                     parts[i] = "/${parts[i]}"
                 }
             }
-            val inverseExpression = parts.joinToString()
+            val inverseExpression = parts.joinToString("")
             val formatString = if ('*' in inverseExpression) "(%s)" else "%s"
             val remainder = input.substring(index + 1)
             val next = "$before${formatString.format(inverseExpression)}$remainder"
@@ -359,7 +357,7 @@ class SetSolver
         }
         else if(input.indexOf('|').also { index = it } > -1)
         {
-            val left = Utility.getOrderedKey(input.substring(0, index)) // TODO ERROR!!! --> "X " REMOVE SPACE!?
+            val left = Utility.getOrderedKey(input.substring(0, index))
             val right = Utility.getOrderedKey(input.substring(index + 1))
             val key = "$left|$right"
             if(vars.containsKey(key))
@@ -552,7 +550,7 @@ class SetSolver
             {
                 return value!!
             }
-            if(!input.contains("*"))
+            if('*' !in input)
             {
                 val parts = input.split('+').toTypedArray()
                 for(i in 0 until parts.size - 1)

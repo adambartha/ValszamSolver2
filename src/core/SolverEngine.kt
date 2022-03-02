@@ -185,7 +185,7 @@ object SolverEngine
                         }
                         else if(char == ')')
                         {
-                            val data = buffer.split(";")
+                            val data = buffer.split(';')
                             if(data[0] == "fgt")
                             {
                                 setSolver.makeIndependent(data[1], data[2])
@@ -207,7 +207,7 @@ object SolverEngine
                         }
                         else if(char == ')')
                         {
-                            val data = buffer.split(",")
+                            val data = buffer.split(',')
                             if(data.size == 1)
                             {
                                 throw InvalidExpressionException(line)
@@ -235,7 +235,7 @@ object SolverEngine
                         }
                         else if(char == ')')
                         {
-                            val data = buffer.split(",")
+                            val data = buffer.split(',')
                             val n: Int; val mean: Double; val deviation: Double; val level: Double
                             when(data.size)
                             {
@@ -280,7 +280,7 @@ object SolverEngine
                         }
                         SolverState.PVAR_PARAMS -> if(char == ')')
                         {
-                            val data = buffer.split(";")
+                            val data = buffer.split(';')
                             when(data[1])
                             {
                                 "Geo" -> {
@@ -362,7 +362,7 @@ object SolverEngine
                             {
                                 throw InvalidExpressionException(line)
                             }
-                            val vars = buffer.split(",")
+                            val vars = buffer.split(',')
                             Repository.checkVariable(vars[0])
                             Repository.checkVariable(vars[1])
                             buffer += char
@@ -424,7 +424,7 @@ object SolverEngine
                         }
                         else if(char == ')')
                         {
-                            val data = buffer.split(";")
+                            val data = buffer.split(';')
                             Repository.addSample(data[0], Sample(data[1]))
                             buffer = ""
                             state = SolverState.INPUT
