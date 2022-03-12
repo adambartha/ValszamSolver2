@@ -225,7 +225,7 @@ object SolverEngine
                         {
                             throw InvalidCharacterException(char)
                         }
-                        SolverState.CINT_DEFINE -> if (char in ".,/" || char.isLetterOrDigit())
+                        SolverState.CINT_DEFINE -> if(char in ".,/" || char.isLetterOrDigit())
                         {
                             if(isInvalidOpChar(buffer, char))
                             {
@@ -465,7 +465,7 @@ object SolverEngine
                         }
                         SolverState.OBJECT_REGION -> if(char == ',' || char.isLetterOrDigit())
                         {
-                            if (char == ',' && buffer.last() == ',')
+                            if(char == ',' && buffer.last() == ',')
                             {
                                 throw InvalidExpressionException(line)
                             }
@@ -480,13 +480,14 @@ object SolverEngine
                             {
                                 params[i] = Utility.getValue(dataValues[i])
                             }
-                            when(params.size)
+                            val region = when(params.size)
                             {
-                                3 -> Repository.addRegion(data[0], Circle(params[0], params[1], params[2]))
-                                4 -> Repository.addRegion(data[0], Rect(params[0], params[1], params[2], params[3]))
-                                6 -> Repository.addRegion(data[0], Triangle(params[0], params[1], params[2], params[3], params[4], params[5]))
+                                3 -> Circle(params[0], params[1], params[2])
+                                4 -> Rect(params[0], params[1], params[2], params[3])
+                                6 -> Triangle(params[0], params[1], params[2], params[3], params[4], params[5])
                                 else -> throw InvalidExpressionException(line)
                             }
+                            Repository.addRegion(data[0], region)
                             buffer = ""
                             state = SolverState.INPUT
                         }
