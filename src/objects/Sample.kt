@@ -10,7 +10,7 @@ class Sample(input: String)
     private val mean: Double
     init
     {
-        val data = input.split(",").toTypedArray()
+        val data = input.split(',')
         set = DoubleArray(data.size)
         var sum = 0.0
         for (i in 0 until getN()) {
@@ -19,15 +19,8 @@ class Sample(input: String)
         }
         mean = sum / getN().toDouble()
     }
-
-    fun getN(): Int
-    {
-        return set.size
-    }
-    fun getMean(): Double
-    {
-        return mean
-    }
+    fun getN(): Int = set.size
+    fun getMean(): Double = mean
     fun getEmp(): Double
     {
         var sum = 0.0
@@ -46,10 +39,7 @@ class Sample(input: String)
         }
         return sum / (getN() - 1).toDouble()
     }
-    fun getDeviation(): Double
-    {
-        return sqrt(getEmpCorr())
-    }
+    fun getDeviation(): Double = sqrt(getEmpCorr())
     fun getCDF(x: Double): Double
     {
         var sum = 0.0

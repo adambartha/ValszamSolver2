@@ -8,7 +8,7 @@ class Box
     private val good: Int; private val total: Int
     constructor(input: String)
     {
-        val data = input.split(",").toTypedArray()
+        val data = input.split(',')
         good = data[0].toInt()
         total = good + data[1].toInt()
     }
@@ -22,11 +22,9 @@ class Box
         SolverEngine.print("Összes: $total | Jó: $good | Rossz: ${total - good}")
         SolverEngine.print("Húzás ${if (withReplacement) "visszatevéssel" else "kivétellel"}")
         val p = DoubleArray(total)
-        var max = 0.0
-        var min = 1.0
+        var max = 0.0; var min = 1.0
+        var maxIndex = 0; var minIndex = 0
         var i = 0
-        var maxIndex = 0
-        var minIndex = 0
         for(j in good..total)
         {
             val pi: Double = if (withReplacement) j.toDouble() / total.toDouble() else good.toDouble() / (total - i).toDouble()
@@ -48,7 +46,7 @@ class Box
                 max = pX
                 maxIndex = i
             }
-            else if (pX < min)
+            else if(pX < min)
             {
                 min = pX
                 minIndex = i

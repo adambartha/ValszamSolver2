@@ -1,10 +1,7 @@
 package objects
 
-abstract class Region
+sealed class Region
 {
     abstract fun getArea(): Double
-    fun getProbOf(r: Region): Double
-    {
-        return getArea() / r.getArea()
-    }
+    fun getProbOf(r: Region): Double = getArea() / r.getArea()
 }

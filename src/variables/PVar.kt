@@ -2,12 +2,9 @@ package variables
 
 import kotlin.math.sqrt
 
-abstract class PVar
+sealed class PVar
 {
     abstract fun getMean(): Double
     abstract fun getVariance(): Double
-    fun getDeviation(): Double
-    {
-        return sqrt(getVariance())
-    }
+    fun getDeviation(): Double = sqrt(getVariance())
 }

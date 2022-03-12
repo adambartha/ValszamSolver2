@@ -100,7 +100,7 @@ object Utility
     {
         if(isWhole(n))
         {
-            return "${n.toInt()}"
+            return "${n.roundToInt()}"
         }
         if(abs(n - PI) < Repository.getError())
         {

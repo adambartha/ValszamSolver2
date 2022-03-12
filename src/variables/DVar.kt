@@ -1,6 +1,6 @@
 package variables
 
-abstract class DVar: PVar()
+sealed class DVar: PVar()
 {
     abstract fun getExact(x: Int): Double
     abstract fun getLessThan(x: Int): Double

@@ -10,6 +10,7 @@ import java.io.StringWriter
 import kotlin.math.exp
 import kotlin.math.ln
 import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 object SolverEngine
 {
@@ -83,42 +84,38 @@ object SolverEngine
                                         buffer = ""
                                     }
                                     "fgt", "kiz" -> {
-                                        buffer += ';'
                                         state = if (queryMode) SolverState.QUERY_MUTUAL else SolverState.PROBABILITY_MUTUAL
+                                        buffer += ';'
                                     }
-                                    "huz" -> {
+                                    "huz", "KI", "VH" -> {
                                         if(queryMode)
                                         {
                                             throw InvalidExpressionException(line)
                                         }
-                                        buffer = ""
-                                        state = SolverState.DRAW_DEFINE
-                                    }
-                                    "KI" -> {
-                                        if(queryMode)
+                                        when(buffer)
                                         {
-                                            throw InvalidExpressionException(line)
+                                            "huz" -> state = SolverState.DRAW_DEFINE
+                                            "KI" -> state = SolverState.CINT_DEFINE
+                                            "VH" -> state = SolverState.BAYESIAN_PARENTS
                                         }
                                         buffer = ""
-                                        state = SolverState.CINT_DEFINE
                                     }
-                                    "VH" -> {
-                                        if(queryMode)
-                                        {
-                                            throw InvalidExpressionException(line)
-                                        }
-                                        buffer = ""
-                                        state = SolverState.BAYESIAN_PARENTS
-                                    }
-                                    "E" -> {
+                                    else -> {
                                         if(!queryMode)
                                         {
                                             throw InvalidExpressionException(line)
                                         }
+                                        state = when(buffer)
+                                        {
+                                            "E" -> SolverState.QUERY_EXVAL
+                                            "V" -> SolverState.QUERY_VARIANCE
+                                            "D" -> SolverState.QUERY_DEVIATION
+                                            "emp" -> SolverState.QUERY_EMP
+                                            "empk" -> SolverState.QUERY_EMPCORR
+                                            else -> throw InvalidExpressionException(line)
+                                        }
                                         buffer = ""
-                                        state = SolverState.QUERY_EXVAL
                                     }
-                                    else -> throw InvalidExpressionException(line)
                                 }
                                 '{' -> {
                                     if(buffer.isNotEmpty())
@@ -161,7 +158,7 @@ object SolverEngine
                             {
                                 throw InvalidOperationException()
                             }
-                            buffer = "${buffer.substring(0, buffer.length - 1)}="
+                            buffer = "${buffer.dropLast(1)}="
                         }
                         else if(char in ".+*/|()" || char.isLetterOrDigit())
                         {
@@ -574,7 +571,7 @@ object SolverEngine
                             {
                                 throw InvalidBayesianException(line)
                             }
-                            for(event in buffer.substring(0, buffer.length - 1).split(','))
+                            for(event in buffer.dropLast(1).split(','))
                             {
                                 Repository.checkVariable(event)
                             }
@@ -651,6 +648,34 @@ object SolverEngine
                             }
                             buffer += char
                         }
+                        SolverState.QUERY_VARIANCE -> {
+                            if(char != ')' && !char.isLetterOrDigit())
+                            {
+                                throw InvalidCharacterException(char)
+                            }
+                            buffer += char
+                        }
+                        SolverState.QUERY_DEVIATION -> {
+                            if(char != ')' && !char.isLetterOrDigit())
+                            {
+                                throw InvalidCharacterException(char)
+                            }
+                            buffer += char
+                        }
+                        SolverState.QUERY_EMP -> {
+                            if(char != ')' && !char.isLetterOrDigit())
+                            {
+                                throw InvalidCharacterException(char)
+                            }
+                            buffer += char
+                        }
+                        SolverState.QUERY_EMPCORR -> {
+                            if(char != ')' && !char.isLetterOrDigit())
+                            {
+                                throw InvalidCharacterException(char)
+                            }
+                            buffer += char
+                        }
                         else -> {} // TODO IMPLEMENT MISSING
                     }
                 }
@@ -665,7 +690,7 @@ object SolverEngine
                             {
                                 throw InvalidExpressionException(expression)
                             }
-                            buffer = buffer.substring(0, buffer.length - 1)
+                            buffer = buffer.dropLast(1)
                             val ltIndex = buffer.indexOf('<')
                             val ltIndex2 = buffer.lastIndexOf('<')
                             val gtIndex = buffer.indexOf('>')
@@ -807,8 +832,66 @@ object SolverEngine
                             {
                                 throw InvalidExpressionException(expression)
                             }
-                            // buffer = buffer.substring(0, buffer.length - 1)
+                            // buffer = buffer.dropLast(1)
                             // result = linearSolver.Solve(buffer) TODO FIX LINEARSOLVER
+                        }
+                        SolverState.QUERY_VARIANCE -> {
+                            if(buffer.last() != ')')
+                            {
+                                throw InvalidExpressionException(expression)
+                            }
+                            buffer = buffer.dropLast(1)
+                            result = if(Repository.hasVar(buffer))
+                            {
+                                Repository.getVar(buffer)!!.getVariance()
+                            }
+                            else if(Repository.hasSample(buffer))
+                            {
+                                Repository.getSample(buffer)!!.getEmpCorr()
+                            }
+                            else
+                            {
+                                val jointProb = Repository.getJointProbFromKey(buffer) ?: throw UnknownVariableException(buffer)
+                                jointProb.getVariance(buffer)
+                            }
+                        }
+                        SolverState.QUERY_DEVIATION -> {
+                            if(buffer.last() != ')')
+                            {
+                                throw InvalidExpressionException(expression)
+                            }
+                            buffer = buffer.dropLast(1)
+                            result = if(Repository.hasVar(buffer))
+                            {
+                                Repository.getVar(buffer)!!.getDeviation()
+                            }
+                            else if(Repository.hasSample(buffer))
+                            {
+                                sqrt(Repository.getSample(buffer)!!.getEmpCorr())
+                            }
+                            else
+                            {
+                                val jointProb = Repository.getJointProbFromKey(buffer) ?: throw UnknownVariableException(buffer)
+                                sqrt(jointProb.getVariance(buffer))
+                            }
+                        }
+                        SolverState.QUERY_EMP -> {
+                            if(buffer.last() != ')')
+                            {
+                                throw InvalidExpressionException(expression)
+                            }
+                            buffer = buffer.dropLast(1)
+                            val sample = Repository.getSample(buffer) ?: throw UnknownVariableException(buffer)
+                            result = sample.getEmp()
+                        }
+                        SolverState.QUERY_EMPCORR -> {
+                            if(buffer.last() != ')')
+                            {
+                                throw InvalidExpressionException(expression)
+                            }
+                            buffer = buffer.dropLast(1)
+                            val sample = Repository.getSample(buffer) ?: throw UnknownVariableException(buffer)
+                            result = sample.getEmpCorr()
                         }
                         else -> {}
                     }
