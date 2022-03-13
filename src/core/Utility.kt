@@ -26,12 +26,12 @@ object Utility
     }
     fun getValue(value: String): Double
     {
-        val parts = value.split("/")
+        val parts = value.split('/')
         return if (parts.size == 2) parts[0].toDouble() / parts[1].toDouble() else parts[0].toDouble()
     }
     fun deMoivreLaplace(variable: PVar, t: Double): Double
     {
-        SolverEngine.getUI()!!.messageOut("De Moivre-Laplace tétel: [X - E(X)] / σ(X) közelítőleg normális eloszlású")
+        SolverEngine.print("De Moivre-Laplace tétel: [X - E(X)] / σ(X) közelítőleg normális eloszlású")
         return VarNormal(variable.getMean(), variable.getVariance()).getCDF(t)
     }
     fun errorFunction(z: Double): Double
@@ -57,7 +57,7 @@ object Utility
             else -> {
                 val a = 0.147
                 val p0 = ln(1.0 - z * z)
-                val p1 = p0 / 2.0 + 2.0 / (PI * a)
+                val p1 = p0 * 0.5 + 2.0 / (PI * a)
                 val p2 = sqrt(p1 * p1 - p0 / a)
                 sign(z) * sqrt(p2 - p1)
             }
@@ -86,16 +86,13 @@ object Utility
         operator fun Regex.contains(text: CharSequence): Boolean = this.matches(text)
         return when(input)
         {
-            in Regex("^\\([^\\(\\)]+\\)$") -> input.substring(1, input.length - 1)
-            in Regex("^\\([^\\(\\)]+") -> input.substring(1)
-            in Regex("[^\\(\\)]+\\)$") -> input.substring(0, input.length - 1)
+            in Regex("^\\([^()]+\\)$") -> input.substring(1, input.length - 1)
+            in Regex("^\\([^()]+") -> input.drop(1)
+            in Regex("[^()]+\\)$") -> input.dropLast(1)
             else -> input
         }
     }
-    fun isWhole(n: Double): Boolean
-    {
-        return abs(n.roundToInt() - n) < Repository.getError()
-    }
+    fun isWhole(n: Double): Boolean = abs(n.roundToInt() - n) < Repository.getError()
     fun format(n: Double): String
     {
         if(isWhole(n))
@@ -160,18 +157,9 @@ object Utility
     {
         return input.replace("*", " ∩ ").replace("+", " ∪ ").replace("|", " | ")
     }
-    fun isNegated(input: String): Boolean
-    {
-        return input.matches(Regex("^/\\w+$"))
-    }
-    fun makePositive(input: String): String
-    {
-        return if (isNegated(input)) input.substring(1) else input
-    }
-    fun negate(input: String): String
-    {
-        return if (isNegated(input)) input.substring(1) else "/$input"
-    }
+    fun isNegated(input: String): Boolean = input.matches(Regex("^/\\w+$"))
+    fun makePositive(input: String): String = if (isNegated(input)) input.drop(1) else input
+    fun negate(input: String): String = if (isNegated(input)) input.drop(1) else "/$input"
     fun extractVariable(input: String): String
     {
         var i = 0
@@ -191,15 +179,15 @@ object Utility
         val key = extract(input)
         val hasIntersection = '*' in key
         val hasUnion = '+' in key
-        if(hasIntersection && !hasUnion)
+        return if(hasIntersection && !hasUnion)
         {
-            return order(key, "*")
+            order(key, "*")
         }
         else if(!hasIntersection && hasUnion)
         {
-            return order(key, "+")
+            order(key, "+")
         }
-        return key
+        else key
     }
     private fun order(input: String, operator: String): String
     {

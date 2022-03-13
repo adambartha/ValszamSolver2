@@ -13,10 +13,7 @@ object Repository
     private val boxes: HashMap<String, Box> = HashMap()
     private val regions: HashMap<String, Region> = HashMap()
     private var jointMode: String? = null
-    fun getError(): Double
-    {
-        return error
-    }
+    fun getError(): Double = error
     @Throws(InvalidNameException::class)
     fun validateName(key: String)
     {
@@ -48,14 +45,8 @@ object Repository
         checkVariable(key)
         vars[key] = value
     }
-    fun getVar(key: String): PVar?
-    {
-        return vars[key]
-    }
-    fun hasVar(Key: String): Boolean
-    {
-        return vars.containsKey(Key)
-    }
+    fun getVar(key: String): PVar? = vars[key]
+    fun hasVar(Key: String): Boolean = vars.containsKey(Key)
     @Throws(VSException::class)
     fun addJointVar(key: String, values: Array<String>)
     {
@@ -67,14 +58,8 @@ object Repository
     {
         jointVars[jointMode!!]!!.add(input.split(',').toTypedArray())
     }
-    fun getJointVar(key: String): JointProb?
-    {
-        return jointVars[key]
-    }
-    fun hasJointVar(key: String): Boolean
-    {
-        return jointVars.containsKey(key)
-    }
+    fun getJointVar(key: String): JointProb? = jointVars[key]
+    fun hasJointVar(key: String): Boolean = jointVars.containsKey(key)
     @Throws(VSException::class)
     fun closeJointVar()
     {
@@ -85,7 +70,7 @@ object Repository
     {
         for((hashKey, value) in jointVars)
         {
-            val keys = hashKey.split(',').toTypedArray()
+            val keys = hashKey.split(',')
             if(key == keys[0] || key == keys[1])
             {
                 return value
@@ -93,40 +78,22 @@ object Repository
         }
         return null
     }
-    fun isJointMode(): Boolean
-    {
-        return jointMode != null
-    }
+    fun isJointMode(): Boolean = jointMode != null
     fun addSample(key: String, sample: Sample)
     {
         samples[key] = sample
     }
-    fun getSample(Key: String): Sample?
-    {
-        return samples[Key]
-    }
-    fun hasSample(key: String): Boolean
-    {
-        return samples.containsKey(key)
-    }
+    fun getSample(Key: String): Sample? = samples[Key]
+    fun hasSample(key: String): Boolean = samples.containsKey(key)
     fun addRegion(key: String, region: Region)
     {
         regions[key] = region
     }
-    fun getRegion(key: String): Region?
-    {
-        return regions[key]
-    }
-    fun hasRegion(key: String): Boolean
-    {
-        return regions.containsKey(key)
-    }
+    fun getRegion(key: String): Region? = regions[key]
+    fun hasRegion(key: String): Boolean = regions.containsKey(key)
     fun addBox(key: String, box: Box)
     {
         boxes[key] = box
     }
-    fun getBox(key: String): Box?
-    {
-        return boxes[key]
-    }
+    fun getBox(key: String): Box? = boxes[key]
 }

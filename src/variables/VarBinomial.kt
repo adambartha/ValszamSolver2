@@ -18,28 +18,11 @@ class VarBinomial(_n: Int, _p: Double): DVar()
     }
     override fun getAtMost(x: Int): Double
     {
-        if(n > 60)
-        {
-            return Utility.deMoivreLaplace(this, x.toDouble())
-        }
-        var result = 0.0
-        for(i in 0..x)
-        {
-            result += getExact(i)
-        }
-        return result
+        return if (n > 60) Utility.deMoivreLaplace(this, x.toDouble()) else sum(x)
     }
     override fun getGreaterThan(x: Int): Double
     {
         return getAtLeast(x + 1)
     }
-    override fun getAtLeast(x: Int): Double
-    {
-        var result = 0.0
-        for(i in x..n)
-        {
-            result += getExact(i)
-        }
-        return result
-    }
+    override fun getAtLeast(x: Int): Double = sum(n)
 }
