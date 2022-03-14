@@ -12,6 +12,7 @@ import kotlin.math.ln
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
+
 object SolverEngine
 {
     private var ui: IUserInterface? = null
@@ -19,9 +20,9 @@ object SolverEngine
     {
         return ui
     }
-    fun setUI(_UI: IUserInterface)
+    fun setUI(_ui: IUserInterface)
     {
-        ui = _UI
+        ui = _ui
     }
     fun print(message: String)
     {
@@ -107,11 +108,17 @@ object SolverEngine
                                         }
                                         state = when(buffer)
                                         {
-                                            "E" -> SolverState.QUERY_EXVAL
+                                            "E" -> SolverState.QUERY_EXPVALUE
                                             "V" -> SolverState.QUERY_VARIANCE
                                             "D" -> SolverState.QUERY_DEVIATION
                                             "emp" -> SolverState.QUERY_EMP
                                             "empk" -> SolverState.QUERY_EMPCORR
+                                            "F" -> SolverState.QUERY_CDF
+                                            "cov" -> SolverState.QUERY_COV
+                                            "R", "corr" -> SolverState.QUERY_CORR
+                                            "fi" -> SolverState.QUERY_PHI
+                                            "ifi" -> SolverState.QUERY_INVERSEPHI
+                                            "atlag" -> SolverState.QUERY_AVERAGE
                                             else -> throw InvalidExpressionException(line)
                                         }
                                         buffer = ""
@@ -641,7 +648,7 @@ object SolverEngine
                             }
                             buffer += char
                         }
-                        SolverState.QUERY_EXVAL -> {
+                        SolverState.QUERY_EXPVALUE -> {
                             if(char !in ".+-*/,^()" && !char.isLetterOrDigit())
                             {
                                 throw InvalidCharacterException(char)
@@ -676,13 +683,107 @@ object SolverEngine
                             }
                             buffer += char
                         }
+                        SolverState.QUERY_CDF -> {
+                            if(';' in buffer)
+                            {
+                                val value = buffer.split(';')[1]
+                                val invalidDiv = char == '/' && (value.isEmpty() || '/' in value || '.' in value)
+                                val invalidDot = char == '.' && value.isNotEmpty() && '.' in value || '/' in value
+                                if(char == ',')
+                                {
+                                    throw InvalidCharacterException(char)
+                                }
+                                else if((invalidDiv || invalidDot) && !char.isDigit())
+                                {
+                                    throw InvalidParameterException(line)
+                                }
+                                else if(char == ')' && value.isEmpty())
+                                {
+                                    throw InvalidExpressionException(line)
+                                }
+                                buffer += char
+                            }
+                            else
+                            {
+                                if(char == ',')
+                                {
+                                    if(buffer.isEmpty())
+                                    {
+                                        throw InvalidExpressionException(line)
+                                    }
+                                    if(!Repository.hasVar(buffer) && !Repository.hasSample(buffer))
+                                    {
+                                        throw UnknownVariableException(buffer)
+                                    }
+                                    buffer += ';'
+                                }
+                                else if(char != ')' && !char.isLetterOrDigit())
+                                {
+                                    throw InvalidCharacterException(char)
+                                }
+                                buffer += char
+                            }
+                        }
+                        SolverState.QUERY_COV, SolverState.QUERY_CORR -> {
+                            if(char == ',')
+                            {
+                                if(',' in buffer)
+                                {
+                                    throw InvalidExpressionException(line)
+                                }
+                            }
+                            else if(char != ')' && !char.isLetterOrDigit())
+                            {
+                                throw InvalidExpressionException(line)
+                            }
+                            buffer += char
+                        }
+                        SolverState.QUERY_PHI, SolverState.QUERY_INVERSEPHI -> {
+                            if(char == '-')
+                            {
+                                if(state != SolverState.QUERY_PHI)
+                                {
+                                    throw InvalidCharacterException(char)
+                                }
+                                if(buffer.isNotEmpty() && '-' in buffer)
+                                {
+                                    throw InvalidParameterException(buffer)
+                                }
+                            }
+                            else if(char == '/')
+                            {
+                                if(buffer.isEmpty() || '/' in buffer || '.' in buffer)
+                                {
+                                    throw InvalidParameterException(buffer)
+                                }
+                            }
+                            else if(char == '.')
+                            {
+                                if(buffer.isNotEmpty() && ('.' in buffer || '/' in buffer))
+                                {
+                                    throw InvalidParameterException(buffer)
+                                }
+                            }
+                            else if(char != ')' && !char.isDigit())
+                            {
+                                throw InvalidExpressionException(line)
+                            }
+                            buffer += char
+                        }
+                        SolverState.QUERY_AVERAGE -> {
+                            if(char != ')' && !char.isLetterOrDigit())
+                            {
+                                throw InvalidCharacterException(char)
+                            }
+                            buffer += char
+                        }
                         else -> {} // TODO IMPLEMENT MISSING
                     }
                 }
                 if(queryMode)
                 {
                     var result = 0.0
-                    var expression = line.substring(1)
+                    var expression = line.drop(1)
                     when(state)
                     {
                         SolverState.QUERY_PROBABILITY -> {
@@ -691,11 +792,10 @@ object SolverEngine
                                 throw InvalidExpressionException(expression)
                             }
                             buffer = buffer.dropLast(1)
-                            val ltIndex = buffer.indexOf('<')
-                            val ltIndex2 = buffer.lastIndexOf('<')
-                            val gtIndex = buffer.indexOf('>')
-                            val eqIndex = buffer.indexOf('=')
-                            if(ltIndex != ltIndex2)
+                            val isLessThan = '<' in buffer
+                            val isGreaterThan = '>' in buffer
+                            val isEqualTo = '=' in buffer
+                            if(buffer.indexOf('<') != buffer.lastIndexOf('<'))
                             {
                                 val data = buffer.split('<')
                                 val key = data[1]
@@ -717,9 +817,9 @@ object SolverEngine
                                     " = F($key,${data[2]}) - F($key,${data[0]})"
                                 }
                             }
-                            else if(eqIndex > -1)
+                            else if(isEqualTo)
                             {
-                                if(ltIndex > -1)
+                                if(isLessThan)
                                 {
                                     val data = buffer.split("<=")
                                     val key = data[0]
@@ -739,7 +839,7 @@ object SolverEngine
                                         expression += " = Φ(${Utility.format((Utility.getValue(data[1]) - variable.getMean()) / variable.getDeviation())})"
                                     }
                                 }
-                                else if(gtIndex > -1)
+                                else if(isGreaterThan)
                                 {
                                     val data = buffer.split(">=")
                                     val key = data[0]
@@ -779,7 +879,7 @@ object SolverEngine
                             }
                             else
                             {
-                                if(ltIndex > -1)
+                                if(isLessThan)
                                 {
                                     val data = buffer.split('<')
                                     val key = data[0]
@@ -798,7 +898,7 @@ object SolverEngine
                                         expression += " = Φ(${Utility.format((Utility.getValue(data[1]) - variable.getMean()) / variable.getDeviation())})"
                                     }
                                 }
-                                else if(gtIndex > -1)
+                                else if(isGreaterThan)
                                 {
                                     val data = buffer.split('>')
                                     val key = data[0]
@@ -827,7 +927,7 @@ object SolverEngine
                                 }
                             }
                         }
-                        SolverState.QUERY_EXVAL -> {
+                        SolverState.QUERY_EXPVALUE -> {
                             if(buffer.last() != ')')
                             {
                                 throw InvalidExpressionException(expression)
@@ -893,7 +993,112 @@ object SolverEngine
                             val sample = Repository.getSample(buffer) ?: throw UnknownVariableException(buffer)
                             result = sample.getEmpCorr()
                         }
-                        else -> {}
+                        SolverState.QUERY_CDF -> {
+                            if(buffer.last() != ')')
+                            {
+                                throw InvalidExpressionException(expression)
+                            }
+                            buffer = buffer.dropLast(1)
+                            val data = buffer.split(';')
+                            val key = data[1]
+                            val value = Utility.getValue(data[2])
+                            if(Repository.hasVar(key))
+                            {
+                                val variable = Repository.getVar(key)!!
+                                result = if(variable is DVar)
+                                {
+                                    variable.getLessThan(value.toInt())
+                                }
+                                else
+                                {
+                                    (variable as CVar).getCDF(value)
+                                }
+                            }
+                            else if(Repository.hasSample(key))
+                            {
+                                result = Repository.getSample(key)!!.getCDF(value)
+                            }
+                            else
+                            {
+                                throw UnknownVariableException(key);
+                            }
+                        }
+                        SolverState.QUERY_COV -> {
+                            if(buffer.last() != ')')
+                            {
+                                throw InvalidExpressionException(expression)
+                            }
+                            buffer = buffer.dropLast(1)
+                            val data = buffer.split(';')
+                            val key0 = data[0]; val key1 = data[1]
+                            val jointKey = Utility.getJointKey(key0, key1, ',')
+                            val jointProb = Repository.getJointVar(jointKey)
+                            if(jointProb == null)
+                            {
+                                // TODO PVARS REQUIRE LINEARSOLVER (FIX!)
+                            }
+                            else
+                            {
+                                result = jointProb.getCov()
+                                expression += "= E($key0*$key1) - E($key0)E($key1)"
+                            }
+                        }
+                        SolverState.QUERY_CORR -> {
+                            if(buffer.last() != ')')
+                            {
+                                throw InvalidExpressionException(expression)
+                            }
+                            buffer = buffer.dropLast(1)
+                            val data = buffer.split(';')
+                            val key0 = data[0]; val key1 = data[1]
+                            val jointKey = Utility.getJointKey(key0, key1, ',')
+                            val jointProb = Repository.getJointVar(jointKey)
+                            if(jointProb == null)
+                            {
+                                if(Repository.getJointProbFromKey(key0) == null)
+                                {
+                                    throw UnknownVariableException(key0)
+                                }
+                                if(Repository.getJointProbFromKey(key1) == null)
+                                {
+                                    throw UnknownVariableException(key1)
+                                }
+                                throw UnknownVariableException(key0, key1)
+                            }
+                            result = jointProb.getCorr()
+                        }
+                        SolverState.QUERY_PHI, SolverState.QUERY_INVERSEPHI -> {
+                            if(buffer.last() != ')')
+                            {
+                                throw InvalidExpressionException(expression)
+                            }
+                            buffer = buffer.dropLast(1)
+                            val value = Utility.getValue(buffer)
+                            if(state == SolverState.QUERY_INVERSEPHI)
+                            {
+                                if(value < 0.0 || value > 1.0)
+                                {
+                                    throw InvalidParameterException("Φ*(x)-ben x-nek 0 és 1 között kell lennie")
+                                }
+                                result = Utility.inversePhiFunction(value)
+                                expression = "Φ*($buffer)"
+                            }
+                            else
+                            {
+                                result = Utility.phiFunction(value, 0.0, 1.0)
+                                expression = "Φ($buffer)%${if (value < 0.0) " = 1 - Φ(${buffer.drop(1)})" else ""}"
+                            }
+                        }
+                        SolverState.QUERY_AVERAGE -> {
+                            if(buffer.last() != ')')
+                            {
+                                throw InvalidExpressionException(expression)
+                            }
+                            buffer = buffer.dropLast(1)
+                            val sample = Repository.getSample(buffer) ?: throw UnknownVariableException(buffer)
+                            result = sample.getMean()
+                        }
+                        else -> throw Exception("Undefined state")
                     }
                     print("→ ${if (state === SolverState.QUERY_PROBABILITY) Utility.toSetNotation(expression) else expression} = ${Utility.format(result)}")
                     results.add(result)

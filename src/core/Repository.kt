@@ -26,9 +26,18 @@ object Repository
     fun checkVariable(key: String)
     {
         validateName(key)
-        if(vars.containsKey(key) || getJointProbFromKey(key) != null || samples.containsKey(key) || boxes.containsKey(key) || regions.containsKey(key))
+        if(hasVar(key) || getJointProbFromKey(key) != null || hasSample(key) || hasBox(key) || hasRegion(key))
         {
             throw ExistingVariableException(key)
+        }
+    }
+    @Throws(InvalidNameException::class, UnknownVariableException::class)
+    fun findVariable(key: String)
+    {
+        validateName(key)
+        if(!hasVar(key) && getJointProbFromKey(key) == null && !hasSample(key) && !hasBox(key) && !hasRegion(key))
+        {
+            throw UnknownVariableException(key)
         }
     }
     fun clear()
@@ -85,15 +94,16 @@ object Repository
     }
     fun getSample(Key: String): Sample? = samples[Key]
     fun hasSample(key: String): Boolean = samples.containsKey(key)
+    fun addBox(key: String, box: Box)
+    {
+        boxes[key] = box
+    }
+    fun getBox(key: String): Box? = boxes[key]
+    fun hasBox(key: String): Boolean = boxes.containsKey(key)
     fun addRegion(key: String, region: Region)
     {
         regions[key] = region
     }
     fun getRegion(key: String): Region? = regions[key]
     fun hasRegion(key: String): Boolean = regions.containsKey(key)
-    fun addBox(key: String, box: Box)
-    {
-        boxes[key] = box
-    }
-    fun getBox(key: String): Box? = boxes[key]
 }
