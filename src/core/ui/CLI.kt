@@ -1,29 +1,22 @@
 package core.ui
 
+import core.SolverEngine
 import java.awt.Color
 
 class CLI: IUserInterface
 {
     private val commands = ArrayList<String>()
-    init {
-        println("=== VALSZÁMSOLVER 2.0 CLI ===\n")
+    init
+    {
+        println("=== ${SolverEngine.getTitle().uppercase()} CLI ===\n")
     }
     override fun messageOut(message: String)
     {
         println(message)
     }
-    override fun getPrecision(): String
-    {
-        return "4"
-    }
-    override fun isFractionEnabled(): Boolean
-    {
-        return true
-    }
-    override fun fetchCommands(): ArrayList<String>
-    {
-        return commands
-    }
+    override fun getPrecision(): String = "4"
+    override fun isFractionEnabled(): Boolean = true
+    override fun fetchCommands(): ArrayList<String> = commands
     override fun setExecTime(text: String)
     {
         println("[$text]\n\n")

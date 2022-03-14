@@ -1,3 +1,3 @@
 package exceptions
 
-abstract class VSException(message: String): Exception(message)
+sealed class VSException(message: String): Exception(message)

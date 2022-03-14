@@ -107,7 +107,7 @@ object Utility
         {
             return "e"
         }
-        if(SolverEngine.getUI()!!.isFractionEnabled())
+        if(SolverEngine.getUI().isFractionEnabled())
         {
             for(i in 2..10_000)
             {
@@ -139,7 +139,7 @@ object Utility
                 }
             }
         }
-        return String.format("%.${SolverEngine.getUI()!!.getPrecision()}f", n)
+        return String.format("%.${SolverEngine.getUI().getPrecision()}f", n)
     }
     fun getSimplified(input: Array<String>, index: Int, operator: String): String
     {

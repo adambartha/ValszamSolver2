@@ -12,21 +12,19 @@ import kotlin.math.ln
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
-
 object SolverEngine
 {
-    private var ui: IUserInterface? = null
-    fun getUI(): IUserInterface?
-    {
-        return ui
-    }
+    private const val TITLE = "ValszámSolver 2.0"
+    private lateinit var ui: IUserInterface
+    fun getTitle() = TITLE
+    fun getUI(): IUserInterface = ui
     fun setUI(_ui: IUserInterface)
     {
         ui = _ui
     }
     fun print(message: String)
     {
-        ui!!.messageOut(message)
+        ui.messageOut(message)
     }
     private fun isInvalidOpChar(buffer: String, char: Char): Boolean
     {
@@ -35,14 +33,10 @@ object SolverEngine
     fun solve(commands: ArrayList<String>): ArrayList<Double>
     {
         val results = ArrayList<Double>()
-        if(ui == null)
-        {
-            return results
-        }
         if(commands.isEmpty())
         {
-            ui!!.setExecTime("Üres bemenet")
-            ui!!.setOutput(null, null)
+            ui.setExecTime("Üres bemenet")
+            ui.setOutput(null, null)
             return results
         }
         var state = SolverState.INPUT
@@ -51,7 +45,7 @@ object SolverEngine
         val timeBegin = System.nanoTime()
         try
         {
-            ui!!.setOutput(null, Color.BLACK)
+            ui.setOutput(null, Color.BLACK)
             val setSolver = SetSolver()
             // val linearSolver = LinearSolver2() // TODO TEST
             for(line in commands)
@@ -259,9 +253,9 @@ object SolverEngine
                                 else -> throw InvalidExpressionException(line)
                             }
                             val cInt = CInt(n, mean, deviation, level)
-                            val precision = ui!!.getPrecision()
-                            print("α = %.${precision}f, u = Φ*(%.${precision}f) = %.${precision}f".format(cInt.getSig(), cInt.getInverseU(), cInt.getU()))
-                            print("→ (%.${precision}f, %.${precision}f)".format(cInt.getMin(), cInt.getMax()))
+                            val prec = ui.getPrecision()
+                            print("α = %.${prec}f, u = Φ*(%.${prec}f) = %.${prec}f".format(cInt.getSig(), cInt.getInverseU(), cInt.getU()))
+                            print("→ (%.${prec}f, %.${prec}f)".format(cInt.getMin(), cInt.getMax()))
                             buffer = ""
                             state = SolverState.INPUT
                         }
@@ -784,14 +778,14 @@ object SolverEngine
                 {
                     var result = 0.0
                     var expression = line.drop(1)
+                    if(buffer.last() != ')')
+                    {
+                        throw InvalidExpressionException(expression)
+                    }
+                    buffer = buffer.dropLast(1)
                     when(state)
                     {
                         SolverState.QUERY_PROBABILITY -> {
-                            if(buffer.last() != ')')
-                            {
-                                throw InvalidExpressionException(expression)
-                            }
-                            buffer = buffer.dropLast(1)
                             val isLessThan = '<' in buffer
                             val isGreaterThan = '>' in buffer
                             val isEqualTo = '=' in buffer
@@ -928,19 +922,9 @@ object SolverEngine
                             }
                         }
                         SolverState.QUERY_EXPVALUE -> {
-                            if(buffer.last() != ')')
-                            {
-                                throw InvalidExpressionException(expression)
-                            }
-                            // buffer = buffer.dropLast(1)
                             // result = linearSolver.Solve(buffer) TODO FIX LINEARSOLVER
                         }
                         SolverState.QUERY_VARIANCE -> {
-                            if(buffer.last() != ')')
-                            {
-                                throw InvalidExpressionException(expression)
-                            }
-                            buffer = buffer.dropLast(1)
                             result = if(Repository.hasVar(buffer))
                             {
                                 Repository.getVar(buffer)!!.getVariance()
@@ -956,11 +940,6 @@ object SolverEngine
                             }
                         }
                         SolverState.QUERY_DEVIATION -> {
-                            if(buffer.last() != ')')
-                            {
-                                throw InvalidExpressionException(expression)
-                            }
-                            buffer = buffer.dropLast(1)
                             result = if(Repository.hasVar(buffer))
                             {
                                 Repository.getVar(buffer)!!.getDeviation()
@@ -976,29 +955,14 @@ object SolverEngine
                             }
                         }
                         SolverState.QUERY_EMP -> {
-                            if(buffer.last() != ')')
-                            {
-                                throw InvalidExpressionException(expression)
-                            }
-                            buffer = buffer.dropLast(1)
                             val sample = Repository.getSample(buffer) ?: throw UnknownVariableException(buffer)
                             result = sample.getEmp()
                         }
                         SolverState.QUERY_EMPCORR -> {
-                            if(buffer.last() != ')')
-                            {
-                                throw InvalidExpressionException(expression)
-                            }
-                            buffer = buffer.dropLast(1)
                             val sample = Repository.getSample(buffer) ?: throw UnknownVariableException(buffer)
                             result = sample.getEmpCorr()
                         }
                         SolverState.QUERY_CDF -> {
-                            if(buffer.last() != ')')
-                            {
-                                throw InvalidExpressionException(expression)
-                            }
-                            buffer = buffer.dropLast(1)
                             val data = buffer.split(';')
                             val key = data[1]
                             val value = Utility.getValue(data[2])
@@ -1024,11 +988,6 @@ object SolverEngine
                             }
                         }
                         SolverState.QUERY_COV -> {
-                            if(buffer.last() != ')')
-                            {
-                                throw InvalidExpressionException(expression)
-                            }
-                            buffer = buffer.dropLast(1)
                             val data = buffer.split(';')
                             val key0 = data[0]; val key1 = data[1]
                             val jointKey = Utility.getJointKey(key0, key1, ',')
@@ -1044,11 +1003,6 @@ object SolverEngine
                             }
                         }
                         SolverState.QUERY_CORR -> {
-                            if(buffer.last() != ')')
-                            {
-                                throw InvalidExpressionException(expression)
-                            }
-                            buffer = buffer.dropLast(1)
                             val data = buffer.split(';')
                             val key0 = data[0]; val key1 = data[1]
                             val jointKey = Utility.getJointKey(key0, key1, ',')
@@ -1068,11 +1022,6 @@ object SolverEngine
                             result = jointProb.getCorr()
                         }
                         SolverState.QUERY_PHI, SolverState.QUERY_INVERSEPHI -> {
-                            if(buffer.last() != ')')
-                            {
-                                throw InvalidExpressionException(expression)
-                            }
-                            buffer = buffer.dropLast(1)
                             val value = Utility.getValue(buffer)
                             if(state == SolverState.QUERY_INVERSEPHI)
                             {
@@ -1090,11 +1039,6 @@ object SolverEngine
                             }
                         }
                         SolverState.QUERY_AVERAGE -> {
-                            if(buffer.last() != ')')
-                            {
-                                throw InvalidExpressionException(expression)
-                            }
-                            buffer = buffer.dropLast(1)
                             val sample = Repository.getSample(buffer) ?: throw UnknownVariableException(buffer)
                             result = sample.getMean()
                         }
@@ -1136,16 +1080,16 @@ object SolverEngine
         {
             when(e)
             {
-                is VSException, is NumberFormatException -> ui!!.setOutput("[!] ${e.message}\n→ $lineCount. sor, $charCount. oszlop", Color.RED)
+                is VSException, is NumberFormatException -> ui.setOutput("[!] ${e.message}\n→ $lineCount. sor, $charCount. oszlop", Color.RED)
                 else -> {
                     val stringWriter = StringWriter()
                     val printWriter = PrintWriter(stringWriter)
                     e.printStackTrace(printWriter)
-                    ui!!.setOutput(stringWriter.toString(), Color.RED)
+                    ui.setOutput(stringWriter.toString(), Color.RED)
                 }
             }
         }
-        ui!!.setExecTime("Kész: %.3f ms".format((System.nanoTime() - timeBegin) * 1e-6))
+        ui.setExecTime("Kész: %.3f ms".format((System.nanoTime() - timeBegin) * 1e-6))
         Repository.clear()
         return results
     }

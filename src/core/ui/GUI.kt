@@ -20,11 +20,10 @@ class GUI : JFrame(), IUserInterface
     private var precision: JSpinner; private var textSize: JSpinner
     private var fraction: JCheckBox; private var auto: JCheckBox
     private var execTime: JLabel
-
     init
     {
         val screen = GraphicsEnvironment.getLocalGraphicsEnvironment().defaultScreenDevice
-        title = "ValszámSolver 2.0"
+        title = SolverEngine.getTitle()
         defaultCloseOperation = EXIT_ON_CLOSE
         minimumSize = Dimension(800, 600)
         size = Dimension(screen.displayMode.width / 2, screen.displayMode.height / 2)
@@ -164,18 +163,12 @@ class GUI : JFrame(), IUserInterface
     {
         output.append("$message\n")
     }
-    override fun getPrecision(): String
-    {
-        return precision.value.toString()
-    }
-    override fun isFractionEnabled(): Boolean
-    {
-        return fraction.isSelected
-    }
+    override fun getPrecision(): String = precision.value.toString()
+    override fun isFractionEnabled(): Boolean = fraction.isSelected
     override fun fetchCommands(): ArrayList<String>
     {
         val commands = ArrayList<String>()
-        for(line in input.text.replace(" ", "").split("\n"))
+        for(line in input.text.replace(Regex("/ +?/g"), "").split('\n'))
         {
             val lineInput = line.trim()
             if(lineInput.isNotBlank())
