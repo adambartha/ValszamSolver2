@@ -1,5 +1,6 @@
 package core
 
+import core.linear.LinearSolver
 import core.ui.IUserInterface
 import exceptions.*
 import objects.*
@@ -47,7 +48,7 @@ object SolverEngine
         {
             ui.setOutput(null, Color.BLACK)
             val setSolver = SetSolver()
-            // val linearSolver = LinearSolver2() // TODO TEST
+            val linearSolver = LinearSolver() // TODO TEST
             for(line in commands)
             {
                 lineCount++
@@ -929,7 +930,7 @@ object SolverEngine
                             }
                         }
                         SolverState.QUERY_EXPVALUE -> {
-                            // result = linearSolver.Solve(buffer) TODO FIX LINEARSOLVER
+                            result = linearSolver.solve(buffer) // TODO FIX LINEARSOLVER
                         }
                         SolverState.QUERY_VARIANCE -> {
                             result = if(Repository.hasVar(buffer))
