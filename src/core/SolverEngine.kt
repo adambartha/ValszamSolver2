@@ -778,6 +778,10 @@ object SolverEngine
                 {
                     var result = 0.0
                     var expression = line.drop(1)
+                    if(buffer.isEmpty())
+                    {
+                        continue
+                    }
                     if(buffer.last() != ')')
                     {
                         throw InvalidExpressionException(expression)
@@ -954,13 +958,9 @@ object SolverEngine
                                 sqrt(jointProb.getVariance(buffer))
                             }
                         }
-                        SolverState.QUERY_EMP -> {
+                        SolverState.QUERY_EMP, SolverState.QUERY_EMPCORR -> {
                             val sample = Repository.getSample(buffer) ?: throw UnknownVariableException(buffer)
-                            result = sample.getEmp()
-                        }
-                        SolverState.QUERY_EMPCORR -> {
-                            val sample = Repository.getSample(buffer) ?: throw UnknownVariableException(buffer)
-                            result = sample.getEmpCorr()
+                            result = if(state == SolverState.QUERY_EMP) sample.getEmp() else sample.getEmpCorr()
                         }
                         SolverState.QUERY_CDF -> {
                             val data = buffer.split(';')
