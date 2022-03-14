@@ -711,11 +711,14 @@ object SolverEngine
                                     }
                                     buffer += ';'
                                 }
-                                else if(char != ')' && !char.isLetterOrDigit())
+                                else if(char == ')' || char.isLetterOrDigit())
+                                {
+                                    buffer += char
+                                }
+                                else
                                 {
                                     throw InvalidCharacterException(char)
                                 }
-                                buffer += char
                             }
                         }
                         SolverState.QUERY_COV, SolverState.QUERY_CORR -> {
@@ -964,8 +967,8 @@ object SolverEngine
                         }
                         SolverState.QUERY_CDF -> {
                             val data = buffer.split(';')
-                            val key = data[1]
-                            val value = Utility.getValue(data[2])
+                            val key = data[0]
+                            val value = Utility.getValue(data[1])
                             if(Repository.hasVar(key))
                             {
                                 val variable = Repository.getVar(key)!!
