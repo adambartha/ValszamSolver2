@@ -48,7 +48,7 @@ object SolverEngine
         {
             ui.setOutput(null, Color.BLACK)
             val setSolver = SetSolver()
-            val linearSolver = LinearSolver() // TODO TEST
+            val linearSolver = LinearSolver()
             for(line in commands)
             {
                 lineCount++

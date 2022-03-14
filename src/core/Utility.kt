@@ -1,5 +1,7 @@
 package core
 
+import exceptions.InvalidNumberException
+import exceptions.InvalidParameterException
 import java.util.*
 import kotlin.math.*
 import variables.*
@@ -24,10 +26,19 @@ object Utility
         }
         return result
     }
+    fun isNumeric(value: String): Boolean
+    {
+        if(value.isEmpty() || "-/.".any { op -> value.indexOf(op) != value.lastIndexOf(op) })
+        {
+            return false
+        }
+        val first = value.first()
+        return value.all { char -> char.isDigit() || char in "-/." } && (first == '-' || first.isDigit())
+    }
     fun getValue(value: String): Double
     {
         val parts = value.split('/')
-        return if (parts.size == 2) parts[0].toDouble() / parts[1].toDouble() else parts[0].toDouble()
+        return if (parts.size == 1) parts[0].toDouble() else parts[0].toDouble() / parts[1].toDouble()
     }
     fun deMoivreLaplace(variable: PVar, t: Double): Double
     {
