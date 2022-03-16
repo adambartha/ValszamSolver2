@@ -6,7 +6,7 @@ import kotlin.math.abs
 
 class SetSolver
 {
-    private val vars: HashMap<String, Double> = HashMap()
+    private val vars = HashMap<String, Double>()
     private val bayesianNetwork = ArrayList<String>()
     private var steps = 0
     fun reset()

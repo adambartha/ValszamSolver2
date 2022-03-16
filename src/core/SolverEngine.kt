@@ -725,16 +725,20 @@ object SolverEngine
                         SolverState.QUERY_COV, SolverState.QUERY_CORR -> {
                             if(char == ',')
                             {
-                                if(',' in buffer)
+                                if(';' in buffer)
                                 {
                                     throw InvalidExpressionException(line)
                                 }
+                                buffer += ';'
                             }
-                            else if(char != ')' && !char.isLetterOrDigit())
+                            else if(char == ')' || char.isLetterOrDigit())
+                            {
+                                buffer += char
+                            }
+                            else
                             {
                                 throw InvalidExpressionException(line)
                             }
-                            buffer += char
                         }
                         SolverState.QUERY_PHI, SolverState.QUERY_INVERSEPHI -> {
                             if(char == '-')
@@ -775,7 +779,7 @@ object SolverEngine
                             }
                             buffer += char
                         }
-                        else -> {} // TODO IMPLEMENT MISSING
+                        else -> throw Exception("not implemented")
                     }
                 }
                 if(queryMode)
@@ -930,7 +934,7 @@ object SolverEngine
                             }
                         }
                         SolverState.QUERY_EXPVALUE -> {
-                            result = linearSolver.solve(buffer) // TODO FIX LINEARSOLVER
+                            result = linearSolver.solve(buffer)
                         }
                         SolverState.QUERY_VARIANCE -> {
                             result = if(Repository.hasVar(buffer))
@@ -998,7 +1002,12 @@ object SolverEngine
                             val jointProb = Repository.getJointVar(jointKey)
                             if(jointProb == null)
                             {
-                                // TODO PVARS REQUIRE LINEARSOLVER (FIX!)
+                                val inputXY = "($key0)*($key1)"
+                                val eXY = LinearSolver().solve(inputXY)
+                                val eX = LinearSolver().solve(key0)
+                                val eY = LinearSolver().solve(key1)
+                                result = eXY - eX * eY
+                                expression += "= E($inputXY) - E($key0)E($key1)"
                             }
                             else
                             {
@@ -1066,6 +1075,10 @@ object SolverEngine
                         if(buffer.isNotEmpty())
                         {
                             Repository.appendJointVar(buffer)
+                        }
+                        else if(!Repository.isJointMode())
+                        {
+                            state = SolverState.INPUT
                         }
                     }
                     else if(state !== SolverState.INPUT)

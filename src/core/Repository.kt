@@ -7,11 +7,11 @@ import variables.*
 object Repository
 {
     private const val error = 1e-7
-    private val vars: HashMap<String, PVar> = HashMap()
-    private val jointVars: HashMap<String, JointProb> = HashMap()
-    private val samples: HashMap<String, Sample> = HashMap()
-    private val boxes: HashMap<String, Box> = HashMap()
-    private val regions: HashMap<String, Region> = HashMap()
+    private val vars = HashMap<String, PVar>()
+    private val jointVars = HashMap<String, JointProb>()
+    private val samples = HashMap<String, Sample>()
+    private val boxes = HashMap<String, Box>()
+    private val regions = HashMap<String, Region>()
     private var jointMode: String? = null
     fun getError(): Double = error
     @Throws(InvalidNameException::class)

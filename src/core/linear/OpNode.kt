@@ -40,14 +40,4 @@ class OpNode(opType: OpType): LinearNode()
     {
         return if(op == opType) false else op == OpType.POW
     }
-    @Throws(SolverException::class)
-    override fun getValue(): Double
-    {
-        if(right == null || left == null)
-        {
-            throw SolverException("hiányos bináris kifejezés")
-        }
-        // TODO
-        return 0.0
-    }
 }

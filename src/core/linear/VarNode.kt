@@ -5,5 +5,5 @@ import variables.PVar
 class VarNode(_variable: PVar): LinearNode()
 {
     private val variable = _variable
-    override fun getValue(): Double = variable.getMean()
+    fun getVariable(): PVar = variable
 }
