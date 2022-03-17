@@ -16,8 +16,10 @@ import kotlin.math.sqrt
 object SolverEngine
 {
     private const val TITLE = "ValszámSolver 2.0"
+    private const val STEP_LIMIT = 100
     private lateinit var ui: IUserInterface
-    fun getTitle() = TITLE
+    fun getTitle(): String = TITLE
+    fun getStepLimit(): Int = STEP_LIMIT
     fun getUI(): IUserInterface = ui
     fun setUI(_ui: IUserInterface)
     {

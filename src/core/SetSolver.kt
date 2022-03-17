@@ -313,7 +313,7 @@ class SetSolver
     @Throws(VSException::class)
     fun solve(input: String): Double
     {
-        if(steps++ == 100)
+        if(steps++ == SolverEngine.getStepLimit())
         {
             throw SolverException("lépésszám-korlát")
         }
@@ -327,7 +327,7 @@ class SetSolver
                 index++
             }
             val expression = input.substring(begin, index)
-            val parts = expression.split(Regex("(?<=[\\+\\*])|(?=[\\+\\*])")).toTypedArray()
+            val parts = expression.split(Regex("(?<=[+*])|(?=[+*])")).toTypedArray()
             for(i in parts.indices)
             {
                 if(parts[i] == "*")

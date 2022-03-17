@@ -36,8 +36,13 @@ class OpNode(opType: OpType): LinearNode()
     }
     fun hasRight(): Boolean = right != null
     fun getOp(): OpType = op
-    fun hasPrecedenceOver(opType: OpType): Boolean
+    fun isOp(opType: OpType): Boolean = op == opType
+    fun hasPrecedenceOver(opType: OpType): Boolean = op.hasPrecedenceOver(opType)
+    fun flip()
     {
-        return if(op == opType) false else op == OpType.POW
+        val temp = right
+        right = left
+        left = temp
     }
+    override fun copy(): OpNode = OpNode(op)
 }

@@ -6,4 +6,5 @@ class VarNode(_variable: PVar): LinearNode()
 {
     private val variable = _variable
     fun getVariable(): PVar = variable
+    override fun copy(): VarNode = VarNode(variable)
 }
