@@ -1,15 +1,15 @@
 package core.linear
 
 import core.Repository
-import core.SolverEngine
 import core.Utility
 import exceptions.*
-import java.lang.IllegalStateException
-import java.util.ArrayDeque
+import kotlin.math.pow
 
 class LinearSolver
 {
     private var root: OpNode? = null
+    private var pointer: OpNode? = null
+    private var buffer = ""
     @Throws(VSException::class)
     fun solve(input: String): Double
     {
@@ -26,9 +26,8 @@ class LinearSolver
         {
             return jointProb.getMean(input)
         }
-        var buffer = ""
         var parenCount = 0
-        var node: LinearNode? = null
+        val groupStack = mutableListOf<OpNode>()
         for(char in input)
         {
             when(char)
@@ -45,7 +44,11 @@ class LinearSolver
                     {
                         throw InvalidExpressionException(input)
                     }
-                    if(node == null)
+                    if(parenCount > groupStack.size)
+                    {
+                        groupStack.removeLast()
+                    }
+                    if(pointer == null)
                     {
                         if(Utility.isNumeric(buffer))
                         {
@@ -60,171 +63,138 @@ class LinearSolver
                             throw UnknownVariableException(buffer)
                         }
                     }
-                    else if(node is OpNode)
+                    else if(buffer.isNotEmpty())
                     {
-                        if(buffer.isEmpty())
-                        {
-                            throw InvalidExpressionException(input)
-                        }
-                        addNode(buffer, node)
+                        insertNode(pointer!!)
                     }
                     parenCount--
-                    buffer = ""
                 }
                 '+', '-', '*', '^' -> {
-                    node = OpNode(when(char)
+                    val op = pointer
+                    pointer = OpNode(when(char)
                     {
                         '+' -> OpType.ADD
                         '-' -> OpType.SUB
                         '*' -> OpType.MUL
-                        '^' -> OpType.POW
-                        else -> throw IllegalStateException()
+                        else -> OpType.POW
                     })
+                    if(groupStack.isNotEmpty())
+                    {
+                        if(groupStack.size == parenCount && pointer!!.hasNoPrecedenceOver(groupStack.last()))
+                        {
+                            groupStack[groupStack.size - 1] = pointer!!
+                        }
+                    }
+                    else if(parenCount > 0)
+                    {
+                        groupStack.add(pointer!!)
+                    }
                     if(root == null)
                     {
-                        root = node
+                        root = pointer
+                        if(buffer.isEmpty())
+                        {
+                            throw InvalidExpressionException(input)
+                        }
+                        insertNode(pointer!!)
                     }
                     else
                     {
-                        val rootNode = root!!
-                        var pointer: LinearNode? = root
-                        while(pointer is OpNode && pointer.hasRight())
+                        op!!
+                        if(groupStack.size > parenCount)
                         {
-                            pointer = pointer.getRight()
-                        }
-                        if(pointer is OpNode)
-                        {
-                            if(pointer.hasPrecedenceOver(node.getOp()))
+                            val groupOp = groupStack.removeLast()
+                            if(pointer!!.hasPrecedenceOver(groupOp))
                             {
-                                addNode(buffer, pointer)
-                                swapRoot(node, rootNode)
-                                buffer = ""
-                                continue
+                                overrideOperator(groupOp)
                             }
                             else
                             {
-                                pointer.setRight(node)
-                                if(pointer.getLeft() is ConstNode)
-                                {
-                                    pointer.flip()
-                                }
+                                op.set(pointer!!)
+                                insertNode(pointer!!)
                             }
+                        }
+                        else if(pointer!!.hasPrecedenceOver(op) && pointer != groupStack.last() && !pointer!!.isOp(OpType.SUB)
+                            || pointer!!.hasNoPrecedenceOver(op) && pointer == groupStack.last())
+                        {
+                            overrideOperator(op)
                         }
                         else
                         {
-                            swapRoot(node, rootNode)
-                            continue
+                            op.set(pointer!!)
+                            insertNode(pointer!!)
                         }
                     }
-                    if(buffer.isEmpty())
-                    {
-                        throw InvalidExpressionException(input)
-                    }
-                    addNode(buffer, node)
-                    buffer = ""
                 }
                 else -> buffer += char
             }
         }
-        addNode(buffer, node as OpNode)
-        val operators = ArrayDeque<OpNode>()
-        val operands = ArrayDeque<LinearNode>()
-        loadQueues(root!!, operators, operands)
-        var steps = 0
-        while(operators.isNotEmpty())
-        {
-            if(steps++ == SolverEngine.getStepLimit())
-            {
-                throw SolverException("lépésszám-korlát")
-            }
-            val op = operators.poll()!!
-            val left = operands.poll()!!
-            val right = operands.poll()!!
-            when(op.getOp())
-            {
-                OpType.POW -> {
-                    if(left is VarNode)
-                    {
-                        if(right !is ConstNode || right.getValue() != 2.0)
-                        {
-                            throw SolverException("túl bonyolult kifejezés")
-                        }
-                        operands.add(ConstNode(left.getVariable().getSquaredMean()))
-                    }
-                    else
-                    {
-                        // TODO
-                    }
-                }
-                OpType.MUL -> {
-                    var leftValue = 0.0; var rightValue = 0.0
-                    if(left is ConstNode)
-                    {
-                        leftValue = left.getValue()
-                    }
-                    else if(left is VarNode)
-                    {
-                        leftValue = left.getVariable().getMean()
-                    }
-                    if(right is ConstNode)
-                    {
-                        rightValue = right.getValue()
-                    }
-                    else if(right is VarNode)
-                    {
-                        rightValue = right.getVariable().getMean()
-                    }
-                    operands.push(ConstNode(leftValue * rightValue))
-                }
-                else -> {
-                    var leftValue = 0.0; var rightValue = 0.0
-                    if(left is ConstNode)
-                    {
-                        leftValue = left.getValue()
-                    }
-                    else if(left is VarNode)
-                    {
-                        leftValue = left.getVariable().getMean()
-                    }
-                    if(right is ConstNode)
-                    {
-                        rightValue = right.getValue()
-                    }
-                    else if(right is VarNode)
-                    {
-                        rightValue = right.getVariable().getMean()
-                    }
-                    if(op.isOp(OpType.SUB))
-                    {
-                        rightValue *= -1.0
-                    }
-                    operands.push(ConstNode(leftValue + rightValue))
-                }
-            }
-        }
-        val result = operands.poll()
-        if(result !is ConstNode || operands.isNotEmpty())
-        {
-            throw SolverException("sikertelen feloldás")
-        }
-        return result.getValue()
+        insertNode(pointer!!)
+        return evaluate(root!!)
     }
     @Throws(VSException::class)
-    private fun addNode(buffer: String, node: OpNode)
+    private fun insertNode(parent: OpNode)
     {
-        val left = node.getLeft()
-        if(node.isOp(OpType.POW) && left is OpNode)
+        val left = parent.getLeft()
+        if(parent.isOp(OpType.POW) && left is OpNode)
         {
             if(left.isOp(OpType.POW) || !Utility.isNumeric(buffer))
             {
                 throw SolverException("túl bonyolult")
             }
-            if(!left.isOp(OpType.MUL))
+            val expandedRoot = expand(left)
+            val parentOfParent = parent.getParent()
+            if(parentOfParent == null)
             {
-                root = expand(left)
-                return
+                root = expandedRoot
             }
+            else
+            {
+                if(parentOfParent.isOp(OpType.SUB) && parentOfParent.getRight() == parent)
+                {
+                    parentOfParent.setRight(expandedRoot)
+                }
+                else
+                {
+                    parentOfParent.setLeft(expandedRoot)
+                }
+            }
+            return
         }
+        parseBuffer(parent)
+    }
+    @Throws(VSException::class)
+    private fun overrideOperator(node: OpNode)
+    {
+        val parent = node.getParent()
+        if(parent == null)
+        {
+            root = pointer
+            root!!.setLeft(node)
+            if(buffer.isNotEmpty() && node.isNotComplete())
+            {
+                parseBuffer(node)
+            }
+            return
+        }
+        if(parent.getLeft() == node)
+        {
+            parent.setLeft(pointer!!)
+        }
+        else
+        {
+            parent.setRight(pointer!!)
+        }
+        pointer!!.setLeft(node)
+        if(buffer.isEmpty())
+        {
+            return
+        }
+        parseBuffer(node)
+    }
+    @Throws(VSException::class)
+    private fun parseBuffer(node: OpNode)
+    {
         if(Utility.isNumeric(buffer))
         {
             val value = Utility.getValue(buffer)
@@ -236,51 +206,127 @@ class LinearSolver
             {
                 val variable = Repository.getVar(buffer) ?: throw UnknownVariableException(buffer)
                 node.set(VarNode(variable))
-                if(node.getLeft() !is VarNode)
-                {
-                    node.flip()
-                }
             }
             else
             {
                 throw InvalidNameException(buffer)
             }
         }
+        buffer = ""
     }
-    private fun swapRoot(new: OpNode, old: LinearNode)
+    private fun expand(node: OpNode, value: ValueNode? = null): OpNode
     {
-        root = new
-        new.setLeft(old)
-    }
-    private fun loadQueues(node: LinearNode, operators: ArrayDeque<OpNode>, operands: ArrayDeque<LinearNode>)
-    {
-        if(node is OpNode)
+        val left = node.getLeft()!!; val right = node.getRight()!!
+        if(node.isOp(OpType.POW))
         {
-            loadQueues(node.getLeft()!!, operators, operands)
-            loadQueues(node.getRight()!!, operators, operands)
-            operators.add(node)
+            throw SolverException("túl bonyolult")
         }
-        else
+        if(node.isOp(OpType.MUL))
         {
-            operands.add(node)
+            val op = node.copy()
+            if(left is VarNode)
+            {
+                val pow = OpNode(OpType.POW)
+                pow.setLeft(left.copy())
+                pow.setRight(ConstNode(2.0))
+                op.setLeft(pow)
+            }
+            if(right is ConstNode)
+            {
+                op.setRight(ConstNode(right.getValue().pow(2.0)))
+            }
+            return op
         }
+        val add = OpNode(OpType.ADD)
+        when(right)
+        {
+            is OpNode -> add.setRight(expand(right, if (left is ValueNode) left else null))
+            is VarNode -> {
+                val pow = OpNode(OpType.POW)
+                pow.setLeft(right.copy())
+                pow.setRight(ConstNode(2.0))
+                add.setRight(pow)
+            }
+            else -> add.setRight(ConstNode((right as ConstNode).getValue().pow(2.0)))
+        }
+        when(left)
+        {
+            is OpNode -> add.setLeft(expand(left, if (right is ValueNode) right else null))
+            is VarNode -> {
+                val pow = OpNode(OpType.POW)
+                pow.setLeft(left.copy())
+                pow.setRight(ConstNode(2.0))
+                if(right is VarNode)
+                {
+                    val op = node.copy()
+                    add.setLeft(op)
+                    val mul0 = OpNode(OpType.MUL); val mul1 = mul0.copy()
+                    mul0.setLeft(mul1)
+                    mul0.setRight(ConstNode(2.0))
+                    mul1.setLeft(left.copy())
+                    mul1.setRight(right.copy())
+                    if(value == null)
+                    {
+                        op.setLeft(pow)
+                        op.setRight(mul0)
+                    }
+                    else
+                    {
+                        val parent: OpNode = node.getParent()!!
+                        val op2 = if (node.isOp(OpType.SUB) && parent.isOp(OpType.SUB)) OpNode(OpType.ADD) else op.copy()
+                        op2.setLeft(pow)
+                        op2.setRight(mul0)
+                        val mulRight0 = OpNode(OpType.MUL); val mulRight1 = mulRight0.copy()
+                        mulRight0.setLeft(mulRight1)
+                        mulRight0.setRight(ConstNode(2.0))
+                        mulRight1.setLeft(right.copy())
+                        mulRight1.setRight(value.copy())
+                        op.setRight(mulRight0)
+                        val mulLeft0 = OpNode(OpType.MUL); val mulLeft1 = mulLeft0.copy()
+                        mulLeft0.setLeft(mulLeft1)
+                        mulLeft0.setRight(ConstNode(2.0))
+                        mulLeft1.setLeft(left.copy())
+                        mulLeft1.setRight(value.copy())
+                        val op3 = parent.copy()
+                        op3.setLeft(op2)
+                        op3.setRight(mulLeft0)
+                        op.setLeft(op3)
+                    }
+                }
+                else
+                {
+                    add.setLeft(pow)
+                }
+            }
+            else -> add.setRight(ConstNode((left as ConstNode).getValue().pow(2.0)))
+        }
+        return add
     }
-    private fun expand(node: OpNode): OpNode
+    private fun evaluate(node: LinearNode): Double
     {
-        val left = node.getLeft() as VarNode; val right = node.getRight() as ConstNode
-        val newRoot = OpNode(OpType.ADD); val diff = node.copy()
-        val mul0 = OpNode(OpType.MUL); val mul1 = OpNode(OpType.MUL)
-        val power = OpNode(OpType.POW)
-        newRoot.setLeft(diff)
-        diff.setRight(mul0)
-        mul0.setLeft(ConstNode(2.0))
-        mul0.setRight(mul1)
-        mul1.setLeft(left.copy())
-        mul1.setRight(right.copy())
-        power.setLeft(left.copy())
-        power.setRight(ConstNode(2.0))
-        diff.setLeft(power)
-        newRoot.setRight(ConstNode(right.getValue() * right.getValue()))
-        return newRoot
+        if(node is ValueNode)
+        {
+            return node.getValue()
+        }
+        node as OpNode
+        val leftNode = node.getLeft()!!
+        val rightNode = node.getRight()!!
+        if(node.isOp(OpType.POW) && leftNode is VarNode)
+        {
+            if(rightNode is ConstNode && rightNode.getValue() == 2.0)
+            {
+                return leftNode.getVariable().getSquaredMean()
+            }
+            throw SolverException("túl bonyolult")
+        }
+        val left = evaluate(leftNode)
+        val right = evaluate(rightNode)
+        return when(node.getOp())
+        {
+            OpType.ADD -> left + right
+            OpType.SUB -> left - right
+            OpType.MUL -> left * right
+            else -> left.pow(right)
+        }
     }
 }

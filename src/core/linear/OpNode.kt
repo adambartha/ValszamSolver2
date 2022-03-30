@@ -2,7 +2,7 @@ package core.linear
 
 import exceptions.SolverException
 
-class OpNode(opType: OpType): LinearNode()
+class OpNode(opType: OpType): LinearNode(2)
 {
     private val op = opType
     private var left: LinearNode? = null
@@ -22,27 +22,35 @@ class OpNode(opType: OpType): LinearNode()
         {
             throw SolverException("hibás kifejezés")
         }
+        balance()
     }
     fun getLeft(): LinearNode? = left
     fun setLeft(node: LinearNode)
     {
         left = node
+        node.setParent(this)
     }
     fun hasLeft(): Boolean = left != null
     fun getRight(): LinearNode? = right
     fun setRight(node: LinearNode)
     {
         right = node
+        node.setParent(this)
     }
     fun hasRight(): Boolean = right != null
+    fun isNotComplete(): Boolean = left == null || right == null
     fun getOp(): OpType = op
     fun isOp(opType: OpType): Boolean = op == opType
-    fun hasPrecedenceOver(opType: OpType): Boolean = op.hasPrecedenceOver(opType)
-    fun flip()
+    fun hasPrecedenceOver(node: OpNode): Boolean = op.hasPrecedenceOver(node.getOp())
+    fun hasNoPrecedenceOver(node: OpNode): Boolean = op.hasNoPrecedenceOver(node.getOp())
+    private fun balance()
     {
-        val temp = right
-        right = left
-        left = temp
+        if(op != OpType.SUB && hasRight() && right!!.hasPriorityOver(left!!))
+        {
+            val temp = right
+            right = left
+            left = temp
+        }
     }
     override fun copy(): OpNode = OpNode(op)
 }

@@ -3,11 +3,9 @@ package core.linear
 enum class OpType(private val order: Int)
 {
     ADD(0),
-    SUB(0),
-    MUL(1),
-    POW(2);
-    fun hasPrecedenceOver(op: OpType): Boolean
-    {
-        return order > op.order
-    }
+    SUB(1),
+    MUL(2),
+    POW(3);
+    fun hasPrecedenceOver(op: OpType): Boolean = order > op.order
+    fun hasNoPrecedenceOver(op: OpType): Boolean = order < op.order
 }
