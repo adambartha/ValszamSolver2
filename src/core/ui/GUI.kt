@@ -165,9 +165,9 @@ class GUI : JFrame(), IUserInterface
     }
     override fun getPrecision(): String = precision.value.toString()
     override fun isFractionEnabled(): Boolean = fraction.isSelected
-    override fun fetchCommands(): ArrayList<String>
+    override fun fetchCommands(): MutableList<String>
     {
-        val commands = ArrayList<String>()
+        val commands = mutableListOf<String>()
         for(line in input.text.replace(Regex("/ +?/g"), "").split('\n'))
         {
             val lineInput = line.trim()

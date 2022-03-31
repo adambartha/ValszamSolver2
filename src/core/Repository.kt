@@ -7,17 +7,18 @@ import variables.*
 object Repository
 {
     private const val error = 1e-7
-    private val vars = HashMap<String, PVar>()
-    private val jointVars = HashMap<String, JointProb>()
-    private val samples = HashMap<String, Sample>()
-    private val boxes = HashMap<String, Box>()
-    private val regions = HashMap<String, Region>()
+    private val vars = mutableMapOf<String, PVar>()
+    private val jointVars = mutableMapOf<String, JointProb>()
+    private val samples = mutableMapOf<String, Sample>()
+    private val boxes = mutableMapOf<String, Box>()
+    private val regions = mutableMapOf<String, Region>()
     private var jointMode: String? = null
     fun getError(): Double = error
+    fun isValidName(key: String): Boolean = key.matches(Regex("^[A-Za-z]+[0-9]*$"))
     @Throws(InvalidNameException::class)
     fun validateName(key: String)
     {
-        if(!key.matches(Regex("^[A-Za-z]+[0-9]*$")))
+        if(!isValidName(key))
         {
             throw InvalidNameException(key)
         }

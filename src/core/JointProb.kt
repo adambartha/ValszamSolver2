@@ -8,35 +8,34 @@ import kotlin.math.sqrt
 class JointProb(params: Array<String>)
 {
     private val x = params[0]; private val y = params[1]
-    private val xVal: DoubleArray = DoubleArray(params.size - 2)
+    private val xVal = DoubleArray(params.size - 2)
     {
         i -> Utility.getValue(params[i + 2])
     }
-    private val pX: DoubleArray = DoubleArray(params.size - 2) { 0.0 }
-    private val yVal = ArrayList<Double>()
-    private val joint = ArrayList<DoubleArray>()
-    private val pY = ArrayList<Double>()
+    private val pX = DoubleArray(params.size - 2) { 0.0 }
+    private val yVal = mutableListOf<Double>()
+    private val joint = mutableListOf<DoubleArray>()
+    private val pY = mutableListOf<Double>()
     fun add(data: Array<String>)
     {
         yVal.add(Utility.getValue(data[0]))
         joint.add(DoubleArray(xVal.size) { 0.0 })
         val line = joint.last()
         var p = 0.0
-        for(i in line.indices)
-        {
-            line[i] = Utility.getValue(data[i + 1])
-            p += line[i]
+        line.indices.forEach {
+            line[it] = Utility.getValue(data[it + 1])
+            p += line[it]
         }
         pY.add(p)
     }
     @Throws(VSException::class)
     fun close()
     {
-        for(i in pY.indices)
+        for(y in pY.indices)
         {
-            for(j in pX.indices)
+            for(x in pX.indices)
             {
-                pX[j] += joint[i][j]
+                pX[x] += joint[y][x]
             }
         }
         if(abs(pX.sum() - 1.0) > Repository.getError() || abs(pY.sum() - 1.0) > Repository.getError())
@@ -47,94 +46,69 @@ class JointProb(params: Array<String>)
     fun getMean(): Double
     {
         var result = 0.0
-        for(i in yVal.indices)
+        for(y in yVal.indices)
         {
-            for(j in xVal.indices)
+            for(x in xVal.indices)
             {
-                result += xVal[j] * yVal[i] * joint[i][j]
+                result += xVal[x] * yVal[y] * joint[y][x]
             }
         }
         return result
     }
-    @Throws(VSException::class)
+    @Throws(UnknownVariableException::class)
     fun getMean(key: String): Double
     {
         var result = 0.0
         when(key)
         {
-            x -> {
-                for(i in pX.indices)
-                {
-                    result += pX[i] * xVal[i]
-                }
-            }
-            y -> {
-                for(i in pY.indices)
-                {
-                    result += pY[i] * yVal[i]
-                }
-            }
+            x -> pX.indices.forEach { result += pX[it] * xVal[it] }
+            y -> pY.indices.forEach { result += pY[it] * yVal[it] }
+            else -> throw UnknownVariableException(key)
+        }
+        return result
+    }
+    @Throws(UnknownVariableException::class)
+    fun getVariance(key: String): Double
+    {
+        var result = 0.0
+        when(key)
+        {
+            x -> pX.indices.forEach { result += pX[it] * xVal[it].pow(2.0) }
+            y -> pY.indices.forEach { result += pY[it] * yVal[it].pow(2.0) }
             else -> throw UnknownVariableException(key)
         }
         return result
     }
     @Throws(VSException::class)
-    fun getVariance(key: String): Double
-    {
-        var result = 0.0
-        if(key == x)
-        {
-            for(i in pX.indices)
-            {
-                result += pX[i] * xVal[i].pow(2.0)
-            }
-            return result - getMean(x).pow(2.0)
-        }
-        if(key == y)
-        {
-            for(i in pY.indices)
-            {
-                result += pY[i] * yVal[i].pow(2.0)
-            }
-            return result - getMean(y).pow(2.0)
-        }
-        throw UnknownVariableException(key)
-    }
+    fun getCov(): Double = getMean() - getMean(x) * getMean(y)
     @Throws(VSException::class)
-    fun getCov(): Double
-    {
-        return getMean() - getMean(x) * getMean(y)
-    }
-    @Throws(VSException::class)
-    fun getCorr(): Double
-    {
-        return getCov() / sqrt(getVariance(x) * getVariance(y))
-    }
+    fun getCorr(): Double = getCov() / sqrt(getVariance(x) * getVariance(y))
     @Throws(VSException::class)
     fun getMarginal(key: String, value: Double): Double
     {
-        if(key == x)
+        when(key)
         {
-            for(i in xVal.indices)
-            {
-                if(xVal[i] == value)
+            x -> {
+                for(i in xVal.indices)
                 {
-                    return pX[i]
+                    if(xVal[i] == value)
+                    {
+                        return pX[i]
+                    }
                 }
+                throw OutOfRangeException(x)
             }
-            throw OutOfRangeException(x)
-        }
-        if(key == y)
-        {
-            for(i in yVal.indices)
-            {
-                if(yVal[i] == value)
+            y -> {
+                for(i in yVal.indices)
                 {
-                    return pY[i]
+                    if(yVal[i] == value)
+                    {
+                        return pY[i]
+                    }
                 }
+                throw OutOfRangeException(y)
             }
-            throw OutOfRangeException(y)
+            else -> throw UnknownVariableException(key)
         }
-        throw UnknownVariableException(key)
     }
 }

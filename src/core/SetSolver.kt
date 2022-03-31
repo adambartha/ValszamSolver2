@@ -6,8 +6,8 @@ import kotlin.math.abs
 
 class SetSolver
 {
-    private val vars = HashMap<String, Double>()
-    private val bayesianNetwork = ArrayList<String>()
+    private val vars = mutableMapOf<String, Double>()
+    private val bayesianNetwork = mutableListOf<String>()
     private var steps = 0
     fun reset()
     {
@@ -610,7 +610,7 @@ class SetSolver
         var result = 1.0
         var output = ""
         val terms = input.split('*', '|')
-        val found: HashMap<String, Boolean> = HashMap()
+        val found = mutableMapOf<String, Boolean>()
         for(term in terms)
         {
             found[Utility.makePositive(term)] = false

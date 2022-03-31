@@ -33,9 +33,9 @@ object SolverEngine
     {
         return !char.isLetterOrDigit() && buffer.last() == char
     }
-    fun solve(commands: ArrayList<String>): ArrayList<Double>
+    fun solve(commands: MutableList<String>): MutableList<Double>
     {
-        val results = ArrayList<Double>()
+        val results = mutableListOf<Double>()
         if(commands.isEmpty())
         {
             ui.setExecTime("Üres bemenet")
@@ -293,8 +293,7 @@ object SolverEngine
                                     Repository.addVar(data[0], VarGeometric(p))
                                 }
                                 "B" -> {
-                                    val n = data[2].toInt()
-                                    val p = Utility.getValue(data[3])
+                                    val n = data[2].toInt(); val p = Utility.getValue(data[3])
                                     if(n < 0)
                                     {
                                         throw InvalidParameterException("'n' értéke nem lehet negatív")
@@ -314,7 +313,8 @@ object SolverEngine
                                     Repository.addVar(data[0], VarPoisson(l))
                                 }
                                 "U" -> {
-                                    Repository.addVar(data[0], VarUniform(Utility.getValue(data[2]), Utility.getValue(data[3])))
+                                    val a = Utility.getValue(data[2]); val b = Utility.getValue(data[3])
+                                    Repository.addVar(data[0], VarUniform(a.coerceAtMost(b), a.coerceAtLeast(b)))
                                 }
                                 "Exp" -> {
                                     val l = Utility.getValue(data[2])

@@ -5,7 +5,7 @@ import java.awt.Color
 
 class CLI: IUserInterface
 {
-    private val commands = ArrayList<String>()
+    private val commands = mutableListOf<String>()
     init
     {
         println("=== ${SolverEngine.getTitle().uppercase()} CLI ===\n")
@@ -16,7 +16,7 @@ class CLI: IUserInterface
     }
     override fun getPrecision(): String = "4"
     override fun isFractionEnabled(): Boolean = true
-    override fun fetchCommands(): ArrayList<String> = commands
+    override fun fetchCommands(): MutableList<String> = commands
     override fun setExecTime(text: String)
     {
         println("[$text]\n\n")

@@ -29,10 +29,7 @@ object Combinatorics
             return n.toDouble().pow(k.toDouble()).toLong()
         }
         var result = 1L
-        for(i in n - k + 1..n)
-        {
-            result *= i.toLong()
-        }
+        (n - k + 1..n).forEach { result *= it.toLong() }
         return result
     }
 }

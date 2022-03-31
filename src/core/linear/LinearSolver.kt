@@ -21,11 +21,7 @@ class LinearSolver
         {
             return Repository.getVar(input)!!.getMean()
         }
-        val jointProb = Repository.getJointProbFromKey(input)
-        if(jointProb != null)
-        {
-            return jointProb.getMean(input)
-        }
+        Repository.getJointProbFromKey(input)?.let { return it.getMean(input) }
         var parenCount = 0
         val groupStack = mutableListOf<OpNode>()
         for(char in input)
@@ -43,10 +39,6 @@ class LinearSolver
                     if(parenCount == 0)
                     {
                         throw InvalidExpressionException(input)
-                    }
-                    if(parenCount > groupStack.size)
-                    {
-                        groupStack.removeLast()
                     }
                     if(pointer == null)
                     {
@@ -83,6 +75,11 @@ class LinearSolver
                         if(groupStack.size == parenCount && pointer!!.hasNoPrecedenceOver(groupStack.last()))
                         {
                             groupStack[groupStack.size - 1] = pointer!!
+                        }
+                        else if(groupStack.size > parenCount && groupStack.last() == op!!)
+                        {
+                            overrideOperator(op)
+                            continue
                         }
                     }
                     else if(parenCount > 0)
@@ -121,8 +118,16 @@ class LinearSolver
                         }
                         else
                         {
-                            op.set(pointer!!)
-                            insertNode(pointer!!)
+                            if(op.isNotComplete())
+                            {
+                                op.set(pointer!!)
+                                insertNode(pointer!!)
+                            }
+                            else
+                            {
+                                overrideOperator(op)
+                                groupStack[groupStack.size - 1] = pointer!!
+                            }
                         }
                     }
                 }
@@ -226,10 +231,7 @@ class LinearSolver
             val op = node.copy()
             if(left is VarNode)
             {
-                val pow = OpNode(OpType.POW)
-                pow.setLeft(left.copy())
-                pow.setRight(ConstNode(2.0))
-                op.setLeft(pow)
+                op.setLeft(createVarSquared(left))
             }
             if(right is ConstNode)
             {
@@ -238,58 +240,39 @@ class LinearSolver
             return op
         }
         val add = OpNode(OpType.ADD)
-        when(right)
+        add.setRight(when(right)
         {
-            is OpNode -> add.setRight(expand(right, if (left is ValueNode) left else null))
-            is VarNode -> {
-                val pow = OpNode(OpType.POW)
-                pow.setLeft(right.copy())
-                pow.setRight(ConstNode(2.0))
-                add.setRight(pow)
-            }
-            else -> add.setRight(ConstNode((right as ConstNode).getValue().pow(2.0)))
-        }
+            is OpNode -> expand(right, if (left is ValueNode) left else null)
+            is VarNode -> createVarSquared(right)
+            else -> ConstNode((right as ConstNode).getValue().pow(2.0))
+        })
         when(left)
         {
             is OpNode -> add.setLeft(expand(left, if (right is ValueNode) right else null))
             is VarNode -> {
-                val pow = OpNode(OpType.POW)
-                pow.setLeft(left.copy())
-                pow.setRight(ConstNode(2.0))
-                if(right is VarNode)
+                val pow = createVarSquared(left)
+                if(right is ValueNode)
                 {
                     val op = node.copy()
                     add.setLeft(op)
-                    val mul0 = OpNode(OpType.MUL); val mul1 = mul0.copy()
-                    mul0.setLeft(mul1)
-                    mul0.setRight(ConstNode(2.0))
-                    mul1.setLeft(left.copy())
-                    mul1.setRight(right.copy())
+                    val mul = createMidTerm(left, right)
                     if(value == null)
                     {
                         op.setLeft(pow)
-                        op.setRight(mul0)
+                        op.setRight(mul)
                     }
                     else
                     {
                         val parent: OpNode = node.getParent()!!
                         val op2 = if (node.isOp(OpType.SUB) && parent.isOp(OpType.SUB)) OpNode(OpType.ADD) else op.copy()
                         op2.setLeft(pow)
-                        op2.setRight(mul0)
-                        val mulRight0 = OpNode(OpType.MUL); val mulRight1 = mulRight0.copy()
-                        mulRight0.setLeft(mulRight1)
-                        mulRight0.setRight(ConstNode(2.0))
-                        mulRight1.setLeft(right.copy())
-                        mulRight1.setRight(value.copy())
-                        op.setRight(mulRight0)
-                        val mulLeft0 = OpNode(OpType.MUL); val mulLeft1 = mulLeft0.copy()
-                        mulLeft0.setLeft(mulLeft1)
-                        mulLeft0.setRight(ConstNode(2.0))
-                        mulLeft1.setLeft(left.copy())
-                        mulLeft1.setRight(value.copy())
+                        op2.setRight(mul)
+                        val mulRight = createMidTerm(right, value)
+                        op.setRight(mulRight)
+                        val mulLeft = createMidTerm(left, value)
                         val op3 = parent.copy()
                         op3.setLeft(op2)
-                        op3.setRight(mulLeft0)
+                        op3.setRight(mulLeft)
                         op.setLeft(op3)
                     }
                 }
@@ -301,6 +284,22 @@ class LinearSolver
             else -> add.setRight(ConstNode((left as ConstNode).getValue().pow(2.0)))
         }
         return add
+    }
+    private fun createVarSquared(node: VarNode): OpNode
+    {
+        val pow = OpNode(OpType.POW)
+        pow.setLeft(node.copy())
+        pow.setRight(ConstNode(2.0))
+        return pow
+    }
+    private fun createMidTerm(left: ValueNode, right: ValueNode): OpNode
+    {
+        val mul0 = OpNode(OpType.MUL); val mul1 = mul0.copy()
+        mul0.setLeft(mul1)
+        mul0.setRight(ConstNode(2.0))
+        mul1.setLeft(left.copy())
+        mul1.setRight(right.copy())
+        return mul0
     }
     private fun evaluate(node: LinearNode): Double
     {

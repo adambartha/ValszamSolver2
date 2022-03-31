@@ -2,9 +2,9 @@ package variables
 
 import kotlin.math.pow
 
-class VarGeometric(_p: Double): DVar()
+class VarGeometric(private val p: Double): DVar()
 {
-    private val p = _p; private val q = 1.0 - p
+    private val q = 1.0 - p
     override fun getMean(): Double = 1.0 / p
     override fun getVariance(): Double = q / (p * p)
     override fun getExact(x: Int): Double = p * getAtLeast(x)

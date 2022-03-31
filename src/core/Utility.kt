@@ -1,7 +1,5 @@
 package core
 
-import exceptions.InvalidNumberException
-import exceptions.InvalidParameterException
 import java.util.*
 import kotlin.math.*
 import variables.*
@@ -58,13 +56,13 @@ object Utility
             q += p[i] * t0.pow(i.toDouble())
         }
         val t1 = t0 * exp(q - z * z)
-        return if (z < 0) t1 - 1 else 1 - t1
+        return if (z < 0) t1 - 1.0 else 1.0 - t1
     }
     fun inverseErrorFunction(z: Double): Double
     {
         return when(z)
         {
-            0.0 -> 0.0
+            0.0 -> z
             else -> {
                 val a = 0.147
                 val p0 = ln(1.0 - z * z)
@@ -154,7 +152,7 @@ object Utility
     }
     fun getSimplified(input: Array<String>, index: Int, operator: String): String
     {
-        val next = ArrayList<String>()
+        val next = mutableListOf<String>()
         for(i in input.indices)
         {
             if(i != index)
@@ -207,7 +205,7 @@ object Utility
         {
             terms[makePositive(term)] = !isNegated(term)
         }
-        val events = ArrayList<String>()
+        val events = mutableListOf<String>()
         for(event in terms.keys)
         {
             events.add(if (terms[event]!!) event else "/$event")

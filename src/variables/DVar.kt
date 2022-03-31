@@ -10,10 +10,7 @@ sealed class DVar: PVar()
     protected fun sum(x: Int): Double
     {
         var result = 0.0
-        for(i in 0..x)
-        {
-            result += getExact(i)
-        }
+        (0..x).forEach { result += getExact(it) }
         return result
     }
 }
