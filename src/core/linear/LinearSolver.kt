@@ -207,7 +207,7 @@ class LinearSolver
         }
         else
         {
-            if(buffer.first().isLetter())
+            if(Repository.isValidName(buffer))
             {
                 val variable = Repository.getVar(buffer) ?: throw UnknownVariableException(buffer)
                 node.set(VarNode(variable))
