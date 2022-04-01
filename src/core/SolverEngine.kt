@@ -8,10 +8,7 @@ import variables.*
 import java.awt.Color
 import java.io.PrintWriter
 import java.io.StringWriter
-import kotlin.math.exp
-import kotlin.math.ln
-import kotlin.math.roundToInt
-import kotlin.math.sqrt
+import kotlin.math.*
 
 object SolverEngine
 {
@@ -271,6 +268,16 @@ object SolverEngine
                             buffer += ';'
                             state = SolverState.PVAR_PARAMS
                         }
+                        else if(char == ':')
+                        {
+                            val type = buffer.substringAfter(';')
+                            if(type !in arrayOf("Geo", "Pois", "Exp"))
+                            {
+                                throw ResolveException(type)
+                            }
+                            buffer += ';'
+                            state = SolverState.PVAR_RESOLVE
+                        }
                         else if(char.isLetter())
                         {
                             buffer += char
@@ -342,6 +349,31 @@ object SolverEngine
                             buffer += ';'
                         }
                         else if(char in "/-." || char.isDigit())
+                        {
+                            buffer += char
+                        }
+                        else
+                        {
+                            throw InvalidCharacterException(char)
+                        }
+                        SolverState.PVAR_RESOLVE -> if(char in "EVD")
+                        {
+                            if(char in buffer.substringAfterLast(';'))
+                            {
+                                throw InvalidExpressionException(line)
+                            }
+                            buffer += char
+                        }
+                        else if(char == '=')
+                        {
+                            val params = buffer.substringAfterLast(';')
+                            if(char in params || "EVD".all { it !in params })
+                            {
+                                throw InvalidExpressionException(line)
+                            }
+                            buffer += ';'
+                        }
+                        else if(char in "-./" || char.isDigit())
                         {
                             buffer += char
                         }
@@ -733,7 +765,7 @@ object SolverEngine
                                 }
                                 buffer += ';'
                             }
-                            else if(char == ')' || char.isLetterOrDigit())
+                            else if(char in "+-*/.()" || char.isLetterOrDigit())
                             {
                                 buffer += char
                             }
@@ -786,7 +818,7 @@ object SolverEngine
                 }
                 if(queryMode)
                 {
-                    var result = 0.0
+                    var result: Double
                     var expression = line.drop(1)
                     if(buffer.isEmpty())
                     {
@@ -994,7 +1026,7 @@ object SolverEngine
                             }
                             else
                             {
-                                throw UnknownVariableException(key);
+                                throw UnknownVariableException(key)
                             }
                         }
                         SolverState.QUERY_COV -> {
@@ -1005,9 +1037,9 @@ object SolverEngine
                             if(jointProb == null)
                             {
                                 val inputXY = "($key0)*($key1)"
-                                val eXY = LinearSolver().solve(inputXY)
-                                val eX = LinearSolver().solve(key0)
-                                val eY = LinearSolver().solve(key1)
+                                val eXY = linearSolver.solve(inputXY)
+                                val eX = linearSolver.solve(key0)
+                                val eY = linearSolver.solve(key1)
                                 result = eXY - eX * eY
                                 expression += "= E($inputXY) - E($key0)E($key1)"
                             }
@@ -1082,6 +1114,45 @@ object SolverEngine
                         {
                             state = SolverState.INPUT
                         }
+                    }
+                    else if(state === SolverState.PVAR_RESOLVE)
+                    {
+                        val data = buffer.split(';')
+                        val key = data[0]
+                        Repository.checkVariable(key)
+                        val value = Utility.getValue(data[3])
+                        when(data[1])
+                        {
+                            "Geo" -> {
+                                val p = when(data[2])
+                                {
+                                    "E" -> 1.0 / value
+                                    "V" -> (sqrt(4.0 * value + 1.0) - 1.0) / (2.0 * value)
+                                    else -> (sqrt(4.0 * value.pow(2.0) + 1.0) - 1.0) / (2.0 * value.pow(2.0))
+                                }
+                                Repository.addVar(key, VarGeometric(p))
+                                print("→ p = ${Utility.format(p)}")
+                            }
+                            "Pois" -> {
+                                val l = when(data[2])
+                                {
+                                    "E", "V" -> value
+                                    else -> value.pow(2.0)
+                                }
+                                Repository.addVar(key, VarPoisson(l))
+                                print("→ λ = ${Utility.format(l)}")
+                            }
+                            else -> {
+                                val l = when(data[2])
+                                {
+                                    "E", "D" -> 1.0 / value
+                                    else -> value.pow(-0.5)
+                                }
+                                Repository.addVar(key, VarExponential(l))
+                                print("→ λ = ${Utility.format(l)}")
+                            }
+                        }
+                        state = SolverState.INPUT
                     }
                     else if(state !== SolverState.INPUT)
                     {

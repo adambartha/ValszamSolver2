@@ -7,6 +7,7 @@ enum class SolverState
     PROBABILITY_MUTUAL,
     PVAR_DEFINE,
     PVAR_PARAMS,
+    PVAR_RESOLVE,
     DRAW_DEFINE,
     CINT_DEFINE,
     OBJECT_DEFINE,

@@ -26,12 +26,12 @@ object Utility
     }
     fun isNumeric(value: String): Boolean
     {
-        if(value.isEmpty() || "-/.".any { op -> value.indexOf(op) != value.lastIndexOf(op) })
+        if(value.isEmpty() || "-/.".any { value.indexOf(it) != value.lastIndexOf(it) })
         {
             return false
         }
         val first = value.first()
-        return value.all { char -> char.isDigit() || char in "-/." } && (first == '-' || first.isDigit())
+        return value.all { it.isDigit() || it in "-/." } && (first == '-' || first.isDigit())
     }
     fun getValue(value: String): Double
     {
@@ -169,20 +169,6 @@ object Utility
     fun isNegated(input: String): Boolean = input.matches(Regex("^/\\w+$"))
     fun makePositive(input: String): String = if (isNegated(input)) input.drop(1) else input
     fun negate(input: String): String = if (isNegated(input)) input.drop(1) else "/$input"
-    fun extractVariable(input: String): String
-    {
-        var i = 0
-        while(i < input.length && !Character.isAlphabetic(input[i].code))
-        {
-            i++
-        }
-        var j = i + 1
-        while(j < input.length && Character.isAlphabetic(input[j].code))
-        {
-            j++
-        }
-        return input.substring(i, j)
-    }
     fun getOrderedKey(input: String): String
     {
         val key = extract(input)
