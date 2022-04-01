@@ -134,8 +134,17 @@ class LinearSolver
                 else -> buffer += char
             }
         }
-        insertNode(pointer!!)
-        return evaluate(root!!)
+        if(parenCount > 0)
+        {
+            throw InvalidExpressionException(input)
+        }
+        if(buffer.isNotEmpty())
+        {
+            insertNode(pointer!!)
+        }
+        val result = evaluate(root!!)
+        reset()
+        return result
     }
     @Throws(VSException::class)
     private fun insertNode(parent: OpNode)
@@ -327,5 +336,11 @@ class LinearSolver
             OpType.MUL -> left * right
             else -> left.pow(right)
         }
+    }
+    private fun reset()
+    {
+        root = null
+        pointer = null
+        buffer = ""
     }
 }
