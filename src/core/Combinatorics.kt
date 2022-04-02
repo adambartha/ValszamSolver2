@@ -4,7 +4,7 @@ import kotlin.math.pow
 
 object Combinatorics
 {
-    fun permutation(n: Int, k: IntArray): Long
+    fun permutation(n: Int, vararg k: Int): Long
     {
         val num = Utility.factorial(n)
         if(k.isNotEmpty())

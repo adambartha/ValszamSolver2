@@ -66,7 +66,15 @@ object SolverEngine
                     {
                         SolverState.INPUT -> if(char.isLetterOrDigit())
                         {
-                            buffer += char
+                            if(char in "PCV" && buffer.all { it.isDigit() })
+                            {
+                                buffer += ";$char;"
+                                state = SolverState.QUERY_COMBINATORICS
+                            }
+                            else
+                            {
+                                buffer += char
+                            }
                         }
                         else
                         {
@@ -644,6 +652,21 @@ object SolverEngine
                         {
                             throw InvalidCharacterException(char)
                         }
+                        SolverState.QUERY_COMBINATORICS -> {
+                            val type = buffer.substringAfter(';').substringBefore(';')[0]
+                            if(char == ',' && type == 'P' || char == 'i' && type in "CV")
+                            {
+                                if(buffer.last() == char)
+                                {
+                                    throw InvalidExpressionException(line)
+                                }
+                            }
+                            else if(!char.isDigit())
+                            {
+                                throw InvalidCharacterException(char)
+                            }
+                            buffer += char
+                        }
                         SolverState.QUERY_PROBABILITY -> {
                             if(char == '=')
                             {
@@ -824,13 +847,61 @@ object SolverEngine
                     {
                         continue
                     }
-                    if(buffer.last() != ')')
+                    if(state != SolverState.QUERY_COMBINATORICS)
                     {
-                        throw InvalidExpressionException(expression)
+                        if(buffer.last() != ')')
+                        {
+                            throw InvalidExpressionException(expression)
+                        }
+                        buffer = buffer.dropLast(1)
                     }
-                    buffer = buffer.dropLast(1)
                     when(state)
                     {
+                        SolverState.QUERY_COMBINATORICS -> {
+                            val data = buffer.split(';')
+                            val n = data[0].toInt()
+                            val params = if (data.size == 3 && data[2].isNotEmpty()) data[2].split(',') else null
+                            when(data[1])
+                            {
+                                "P" -> {
+                                    if(params == null)
+                                    {
+                                        result = Combinatorics.permutation(n).toDouble()
+                                    }
+                                    else
+                                    {
+                                        val k = params.map { it.toInt() }.toIntArray()
+                                        result = Combinatorics.permutation(n, *k).toDouble()
+                                    }
+                                }
+                                "C" -> {
+                                    val k = params!![0]
+                                    result = if(k.last() == 'i')
+                                    {
+                                        val kValue = k.dropLast(1).toInt()
+                                        Combinatorics.combination(true, n, kValue).toDouble()
+                                    }
+                                    else
+                                    {
+                                        val kValue = k.toInt()
+                                        Combinatorics.combination(false, n, kValue).toDouble()
+                                    }
+                                }
+                                else -> {
+                                    val k = params!![0]
+                                    result = if(k.last() == 'i')
+                                    {
+                                        val kValue = k.dropLast(1).toInt()
+                                        Combinatorics.variation(true, n, kValue).toDouble()
+                                    }
+                                    else
+                                    {
+                                        val kValue = k.toInt()
+                                        Combinatorics.variation(false, n, kValue).toDouble()
+                                    }
+                                }
+                            }
+                        }
                         SolverState.QUERY_PROBABILITY -> {
                             val isLessThan = '<' in buffer
                             val isGreaterThan = '>' in buffer
